@@ -1,0 +1,18 @@
+{
+  //详情参照 http://loaclhost:8001/resultcode/
+  "resultcode": "200",
+  //Failure 失败 Successed 成功
+  "reason": "Successed!",
+  //    DETAILTASK 任务详细（医生和病人共同订阅的那个任务）
+  "type": "DETAILTASK",
+  //返回结果集
+  "result": {
+    //消息内容集合。
+    "message": [{
+      "id":"1",
+      "symptom":"头痛",
+      "datetime":"1450520669",
+      ""
+    }]
+  }
+}

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <script>
+        function gettime(){
+            t1 = document.getElementById('time1')
+            var t = new Date()
+            var year = t.getFullYear()
+            var m = t.getMonth()+1
+            var day = t. getDate()
+            var h = t.getHours()
+            var minutes = t.getMinutes()
+            var seconds = t.getSeconds();
+            timenow =year+"-"+m+"-"+day+" "+h+":"+(minutes>=10?minutes:"0"+minutes)+":"+seconds;
+            t1.value = t.getTime()
+        }
+
+    </script>
+</head>
+<body onload="gettime()">
+<form method="post" action="/testPost/">
+    <input type="button" value="test" onclick="gettime()">
+    症状<select name="symptom">
+    <option value="all" >-请选择-</option>
+    <option value="头痛"selected="selected">头痛</option>
+    <option value="腹泻">腹泻</option>
+    <option value="风湿">风湿</option>
+    <option value="面瘫">面瘫</option>
+    </select><br><br>
+    时间<input type="datetime" name="datetime" id="time1"><br>
+    精度<input name="lat" value="22.543474"><br>
+    纬度<input name="lon" value="113.958452"><br>
+    姓名<input name="patient_name" value="关羽"><br>
+
+    <input type="submit">
+
+</form>
+</body>
+</html>

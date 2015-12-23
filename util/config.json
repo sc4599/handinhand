@@ -1,0 +1,14 @@
+{
+    "redis": {
+        "ip": "192.168.1.18",
+        "port": "6379",
+        "auth": "songchao"
+    },
+    "mysql": {
+        "ip": "192.168.1.18",
+        "port": "3306",
+        "username": "sc4599",
+        "password": "songchao",
+        "database": "handinhand"
+    }
+}

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <script>
+        function loginPost(){
+            alert('sdfs')
+            var mfrom = document.createElement('from')
+            mfrom.action = 'http://192.168.1.124:8002/login/'
+            mfrom.method = 'post'
+            mfrom.style.display= 'none'
+            var username = document.getElementById('username')
+            var pwd = document.getElementById('password')
+            var opt = document.createElement('textarea')
+            opt.name= 'username'
+            opt.value = username
+            var opt2 = document.createElement('textarea')
+            opt.name= 'password'
+            opt.value = pwd
+            mfrom.appendChild(opt)
+            mfrom.appendChild(opt2)
+            mfrom.submit()
+        }
+
+    </script>
+</head>
+<body>
+
+<form action="/login/" method="post">
+    用户名<input name="username"  id = 'username'><br>
+    密    码<input name="password"  id = 'password'><br>
+
+    <input type="submit" >
+</form>
+</body>
+</html>
