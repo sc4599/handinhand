@@ -10,7 +10,7 @@ from dao.RedisDAO import connect
 # 获取本机IP
 import socket
 from control import TaskControl
-
+from control import LoginControl
 # 测试数据
 testSTR = r"[{id:1,gender:'m',age:20,symptom:'头动脑热',tel:'15012822291',location:{lon:'22.5431720000',lat:'113.9587510000'}}," \
           r"{id:2,gender:'m',age:22,symptom:'风湿类风湿',tel:'13408866736',location:{lon:'22.5425040000',lat:'113.9566850000'}}," \
@@ -44,26 +44,37 @@ class TestPostHandler(tornado.web.RequestHandler):
         patient_name = self.get_argument('patient_name')
 
         print symptom, datetime, lat, lon, patient_name
-        detailTask = {}
-        detailTask['symptom'] = symptom
-        detailTask['datetime'] = datetime
-        detailTask['lat'] = lat
-        detailTask['lon'] = lon
-        detailTask['patient_name'] = patient_name
-        TaskControl.pushTask(detailTask)
+
 
 
 class LoginHandler(tornado.web.RequestHandler):
     print 'this is loginHandler'
+
     def get(self, *args, **kwargs):
         pass
-
+    # 接受传递过来的  username 和 password 判断用户名密码是否正确
+    # 返回 true 和 false 来判断是否正确
     def post(self, *args, **kwargs):
         username = self.get_argument('username')
         password = self.get_argument('password')
+        print u'当前类：LoginHandler', username, password
+        r = LoginControl.authUser(username, password)
+        self.write(r)
 
-        print username, password
+class RegisterHandler(tornado.web.RequestHandler):
+    print 'this is loginHandler'
 
+    def get(self, *args, **kwargs):
+        pass
+    # 接受传递过来的  username 和 password 和短信验证码
+    # 返回 true 和 false 来判断是否正确
+    def post(self, *args, **kwargs):
+        username = self.get_argument('username')
+        password = self.get_argument('password')
+        smscode = self.get_argument('smscode')
+        print u'当前类：RegisterHandler', username, smscode
+        r = LoginControl.registerPatient(username, password ,smscode)
+        self.write(r)
 
 class DetailTaskHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
@@ -86,6 +97,15 @@ class ResultCodeHandler(tornado.web.RequestHandler):
     def get(self):
         self.render('result.html')
 
+class HelpHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render('help.html')
+
+class SendSmscodeHandler(tornado.web.RequestHandler):
+    def get(self,*args):
+        print 'current method is SendSmscodeHandler--get tel = %s'%args[0]
+        LoginControl.sendSmscode(args[0])
+
 
 class OtherHandler(tornado.web.RequestHandler):
     print 'this is  OtherHandler'
@@ -101,8 +121,11 @@ if __name__ == '__main__':
     myApp = tornado.web.Application(handlers=[(r'/', IndexHandler),
                                               (r'/detailTask/msg=(.*)', DetailTaskHandler),
                                               (r'/resultCode/', ResultCodeHandler),
+                                              (r'/help/', HelpHandler),
                                               (r'/testPost/', TestPostHandler),
                                               (r'/login/', LoginHandler),
+                                              (r'/register/tel=(.*)', RegisterHandler),
+                                              (r'/sendSmscode/', SendSmscodeHandler),
                                               (r'/.*', OtherHandler)
                                               ],
                                     template_path=os.path.join(os.path.dirname(__file__), 'templates'),

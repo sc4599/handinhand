@@ -3,14 +3,14 @@ import os,json
 
 #获取当前文件夹的绝对路径
 path = os.path.dirname(__file__)
-print path
+
 f = open(path+'/config.json')
-print f
+config = json.load(f)
+
 # 记录常用属性， redisIP 等。。。
 class Config(object):
     def __init__(self):
-        config = json.load(f)
-        print config
+        # print config
         self.reidsIP = config['redis']['ip']
         self.redisPORT = config['redis']['port']
         self.redisAUTH = config['redis']['auth']

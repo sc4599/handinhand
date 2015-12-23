@@ -7,7 +7,6 @@ import redis
 import os
 from tornado.options import define, options
 
-define("port", default=8001, help="run on the given port", type=int)
 
 
 class IndexHandler(tornado.web.RequestHandler):
@@ -56,11 +55,7 @@ class MyApplication(tornado.web.Application):
 
 
 if __name__ == "__main__":
-    # app = make_app()
-    # app.listen(8888)
-    # 使用自定义都myApplication 创建httpserver
-    http_server = tornado.httpserver.HTTPServer(MyApplication())
-    # 监听8888端口
-    http_server.listen(8888)
-    # 启动事件轮循
-    tornado.ioloop.IOLoop.current().start()
+    d = {'name':'songchao','age':'22'}
+
+    print d['name']
+    print d.get('name')
