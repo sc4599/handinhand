@@ -9,10 +9,8 @@
   "result": {
     //消息内容集合。
     "message": [{
-      "id":"1",
       "symptom":"头痛",
-      "datetime":"1450520669",
-      ""
+      "datetime":"1450520669"
     }]
   }
 }

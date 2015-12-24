@@ -1,4 +1,5 @@
 # coding:utf8
+import uuid
 import redis
 from entity.Entity import DetailTask
 from util.Util import Config
@@ -24,24 +25,18 @@ def connect(redisIP=None, post=6379, db=0, password='songchao'):
 # 存储任务到redis中
 def saveDetailTask(redis_connect, detailTask):
     r = redis_connect
-    taskid = "taks:%s" % detailTask.get('id')
-    r.hsetnx(taskid, 'id', detailTask.get('id'))
-    r.hsetnx(taskid, 'symptom', detailTask.get('symptom'))
-    r.hsetnx(taskid, 'datetime', detailTask.get('datetime'))
-    r.hsetnx(taskid, 'lat', detailTask.get('lat'))
-    r.hsetnx(taskid, 'lon', detailTask.get('lon'))
-    r.hsetnx(taskid, 'patient_tel', detailTask.get('patient_tel'))
-    r.hsetnx(taskid, 'patient_name', detailTask.get('patient_name'))
-    r.hsetnx(taskid, 'doctor_tel', detailTask.get('doctor_tel'))
-    r.hsetnx(taskid, 'doctor_name', detailTask.get('doctor_name'))
+    taskid = "hash_tasks_%s" % detailTask.get('id')
+    r.hmset(taskid, detailTask)
     print u'储存完毕'
+    return '200200'  # 数据写入成功
 
 
 # 储存病人资料到redis中
 def redisSavePatient(redis_connect, patient):
     r = redis_connect
-    patientid = "patient_%s" % patient.get('tel')
+    patientid = "hash_patient_%s" % patient.get('tel')
     r.hset(patientid, 'tel', patient.get('tel'))
+    r.hset(patientid, 'password', patient.get('password'))
     r.hset(patientid, 'pic', patient.get('pic'))
     r.hset(patientid, 'name', patient.get('name'))
     r.hset(patientid, 'gender', patient.get('gender'))
@@ -49,18 +44,21 @@ def redisSavePatient(redis_connect, patient):
     r.hset(patientid, 'treatment_count', patient.get('treatment_count'))
     r.hset(patientid, 'colliction_list_id', patient.get('colliction_list_id'))
     print 'done'
-    return '200102' # 注册成功
+    return '200200'  # 数据写入成功
 
 
 # 储存医生资料到redis中
 def redisSaveDoctor(redis_connect, doctor):
     r = redis_connect
-    doctorid = "doctor_%s" % doctor.get('tel')
+    doctorid = "hash_doctor_%s" % doctor.get('tel')
     r.hset(doctorid, 'tel', doctor.get('tel'))
+    r.hset(doctorid, 'password', doctor.get('password'))
     r.hset(doctorid, 'age', doctor.get('age'))
     r.hset(doctorid, 'pic', doctor.get('pic'))
     r.hset(doctorid, 'name', doctor.get('name'))
     r.hset(doctorid, 'gender', doctor.get('gender'))
+    r.hset(doctorid, 'ndividual_resume', doctor.get('ndividual_resume'))
+    r.hset(doctorid, 'adept', doctor.get('adept'))
     r.hset(doctorid, 'colliction_count', doctor.get('colliction_count'))
     r.hset(doctorid, 'treatment_count', doctor.get('treatment_count'))
     r.hset(doctorid, 'qualification_pic', doctor.get('qualification_pic'))
@@ -71,20 +69,20 @@ def redisSaveDoctor(redis_connect, doctor):
 
 # 查询redis 中存在病人
 def redisQueryPatient(redis_connect, tel):
-    r = redis_connect.get('patient_%s' % tel)
+    r = redis_connect.get('hash_patient_%s' % tel)
     print r
 
 
 # 查询redis 中存在医生
 def redisQueryDoctor(redis_connect, tel):
-    r = redis_connect.get('doctor_%s' % tel)
+    r = redis_connect.get('hash_doctor_%s' % tel)
     print r
+
 
 # 判断病人是否已经注册
 def isExistsPatient(redis_connect, tel):
-    r = redis_connect.exists('patient_%s'%tel)
+    r = redis_connect.exists('hash_patient_%s' % tel)
     return r
-
 
 
 def publishTask(redis_connect, detailTask):
@@ -96,5 +94,8 @@ if __name__ == "__main__":
     ip = c.reidsIP
     psw = c.redisAUTH
     redis_connect = connect(redisIP=ip, password=psw)
-    r = isExistsPatient(redis_connect,'12345678901')
-    print r
+    # redis_connect.set('s1','test', ex=30)
+    # r = redis_connect.keys('t*')
+    import time
+
+    print int(time.time())
