@@ -31,6 +31,10 @@ def registerPatient(patient,password,smscode):
         if authSmscode(tel,smscode):
             RedisDAO.redisSavePatient(patient)
 
+def updataPatientInfo(patient):
+    RedisDAO.redisSavePatient(redis_connect,patient)
+
+
 # 发送验证码
 def sendSmscode(tel):
     # todo 注意恶意刷短信
