@@ -42,6 +42,7 @@ CREATE TABLE `comment` (
 DROP TABLE IF EXISTS `detailtask`;
 CREATE TABLE `detailtask` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(50) DEFAULT NULL,
   `symptom` varchar(200) DEFAULT NULL,
   `datetime` datetime DEFAULT NULL,
   `lat` varchar(50) DEFAULT NULL,
@@ -50,6 +51,7 @@ CREATE TABLE `detailtask` (
   `patient_name` varchar(50) DEFAULT NULL,
   `doctor_tel` varchar(11) DEFAULT NULL,
   `doctor_name` varchar(50) DEFAULT NULL,
+  `spare_field1` varchar(200) DEFAULT NULL,
   `comment_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
