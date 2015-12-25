@@ -62,6 +62,7 @@ class LoginHandler(tornado.web.RequestHandler):
     # 返回 true 和 false 来判断是否正确
     def post(self, *args, **kwargs):
         username = self.get_argument('username')
+        print username
         password = self.get_argument('password')
         print u'当前类：LoginHandler', username, password
         r = LoginControl.authUser(redis_connect, username, password)
@@ -84,7 +85,7 @@ class RegisterHandler(tornado.web.RequestHandler):
     # 接受传递过来的  uerType 和tel, password 和smscode短信验证码
     # 返回 结果码 来判断返回意义
     def post(self, *args, **kwargs):
-        userType = self.get_argument('uerType')
+        userType = self.get_argument('userType')
         tel = self.get_argument('tel')
         password = self.get_argument('password')
         smscode = self.get_argument('smscode')

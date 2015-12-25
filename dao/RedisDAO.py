@@ -43,7 +43,7 @@ def redisSavePatient(redis_connect, patient):
     r.hset(patientid, 'age', patient.get('age'))
     r.hset(patientid, 'treatment_count', patient.get('treatment_count'))
     r.hset(patientid, 'colliction_list_id', patient.get('colliction_list_id'))
-    print 'done'
+    print 'redisSavePatient done'
     return '200200'  # 数据写入成功
 
 
@@ -64,7 +64,7 @@ def redisSaveDoctor(redis_connect, doctor):
     r.hset(doctorid, 'qualification_pic', doctor.get('qualification_pic'))
     r.hset(doctorid, 'identification_pic', doctor.get('identification_pic'))
     r.hset(doctorid, 'hospital', doctor.get('hospital'))
-    print 'done'
+    print 'redisSaveDoctor done'
 
 
 # 查询redis 中存在病人
