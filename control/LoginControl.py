@@ -9,11 +9,11 @@ def authUser(redis_connect,username,password):
     if r != False:
         pwd = r[0]['password']
         if pwd == password:
-            return 'true'
+            return '200202' # 登录成功
         else:
-            return 'false'
+            return '200203' # 帐号或密码错误
     else:
-        return 'false'
+        return '200203'# 帐号或密码错误
 
 # 注册病人
 # patient 病人实体 dict
@@ -26,11 +26,14 @@ def registerPatientOrDoctor(redis_connect,entity,smscode,userType):
     if r :
         return '200101' # 该用户已经存在
     else:
-        if authSmscode(tel,smscode):
+        if authSmscode(redis_connect,tel,smscode):
             if userType == 'patient':
                 rcode = RedisDAO.redisSavePatient(redis_connect,entity)
             else:
-                rcode = RedisDAO.redisSaveDoctor(redis_connect,entity)
+                if userType == 'doctor':
+                    rcode = RedisDAO.redisSaveDoctor(redis_connect,entity)
+                else:
+                    return '200201' # 提交用户类型错误
             if '200200' == rcode:
                 return '200102' # 用户注册成功
             else:
@@ -48,15 +51,16 @@ def updataPatientInfo(redis_connect,patient):
 def sendSmscode(redis_connect,tel):
     # todo 注意恶意刷短信
     smscode = int(random.uniform(1000,9999))
-    redis_connect.set('smscode_%s'%tel,smscode,ex=60)
+    redis_connect.set('smscode_%s'%tel,smscode,ex=60) # 将短信验证码写入 redis
     # todo send smscode to smsdata
     s= u' 您的电话是 %s,快约医生验证码 ： %s'%(tel,smscode)
     print s
     return s
 
+
 # 验证短信验证码是否成功
 def authSmscode(redis_connect,tel,smscode):
-    code = redis_connect.get('smscode_%s'%tel)
+    code = redis_connect.get('smscode_%s'%tel) # 查询之前写入的 验证码
     if code == smscode:
         return True
     else:
