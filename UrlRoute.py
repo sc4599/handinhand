@@ -1,6 +1,6 @@
 # coding:utf-8
 import os
-
+import re
 import tornado.httpserver
 import tornado.web
 import tornado.ioloop
@@ -91,8 +91,9 @@ class RegisterHandler(tornado.web.RequestHandler):
         entity = {}
         entity['tel'] = tel
         entity['password'] = password
-        print u'当前类：RegisterHandler', tel, smscode
+
         r = LoginControl.registerPatientOrDoctor(redis_connect, entity, smscode, userType)
+        print u'当前类：RegisterHandler', tel, smscode, 'resultcode %s'%r
         self.write(r)
 
 
@@ -137,9 +138,13 @@ class HelpHandler(tornado.web.RequestHandler):
 
 class SendSmscodeHandler(tornado.web.RequestHandler):
     def get(self, *args):
-        print 'current method is SendSmscodeHandler--get tel = %s' % args[0]
-        r = LoginControl.sendSmscode(redis_connect, args[0])
-        print self.request.remote_ip  # 获取远程客户端IP
+        p2=re.compile('^0\d{2,3}\d{7,8}$|^1[3587]\d{9}$|^147\d{8}') # 电话号码匹配正则
+        if p2.match(args[0]):
+            print 'current method is SendSmscodeHandler--get tel = %s' % args[0]
+            r = LoginControl.sendSmscode(redis_connect, args[0])
+            print self.request.remote_ip  # 获取远程客户端IP
+        else:
+            r = '200105' #电话号码有误
         self.write(r)
 
 
