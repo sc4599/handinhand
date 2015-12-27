@@ -65,23 +65,31 @@ def redisSaveDoctor(redis_connect, doctor):
     r.hset(doctorid, 'identification_pic', doctor.get('identification_pic'))
     r.hset(doctorid, 'hospital', doctor.get('hospital'))
     print 'redisSaveDoctor done'
+    return '200200'
 
 
-# 查询redis 中存在病人
-def redisQueryPatient(redis_connect, tel):
-    r = redis_connect.get('hash_patient_%s' % tel)
-    print r
+# 查询redis 中存在病人或医生的密码
+def redisQueryPatientOrDoctorPWD(redis_connect, tel, userType):
+
+    if userType == 'doctor':
+        r = redis_connect.hget('hash_doctor_%s' % tel, 'password')
+    else:
+        if userType == 'patient':
+            r = redis_connect.hget('hash_patient_%s' % tel, 'password')
+        else:
+            return False
+    return r
 
 
-# 查询redis 中存在医生
-def redisQueryDoctor(redis_connect, tel):
-    r = redis_connect.get('hash_doctor_%s' % tel)
-    print r
-
-
-# 判断病人是否已经注册
-def isExistsPatient(redis_connect, tel):
-    r = redis_connect.exists('hash_patient_%s' % tel)
+# 判断病人或医生是否已经注册
+def isExistsPatientOrDoctor(redis_connect, tel, userType):
+    if userType == 'doctor':
+        r = redis_connect.exists('hash_doctor_%s' % tel)
+    else:
+        if userType == 'patient':
+            r = redis_connect.exists('hash_patient_%s' % tel)
+        else:
+            return '200201'
     return r
 
 
@@ -90,12 +98,8 @@ def publishTask(redis_connect, detailTask):
 
 
 if __name__ == "__main__":
-    c = Config()
-    ip = c.reidsIP
-    psw = c.redisAUTH
-    redis_connect = connect(redisIP=ip, password=psw)
-    # redis_connect.set('s1','test', ex=30)
-    # r = redis_connect.keys('t*')
-    import time
+    redis_connect = connect('192.168.1.18')
 
-    print int(time.time())
+    r = redisQueryPatientOrDoctor(redis_connect, '15272826842', 'doctor')
+
+    print r
