@@ -10,8 +10,7 @@ from dao import MysqlDAO, RedisDAO
 from util.Util import Config
 # 获取本机IP
 import socket
-from control import TaskControl
-from control import LoginControl
+from control import TaskControl, LoginControl
 # 测试数据
 testSTR = r"[{id:1,gender:'m',age:20,symptom:'头动脑热',tel:'15012822291',location:{lon:'22.5431720000',lat:'113.9587510000'}}," \
           r"{id:2,gender:'m',age:22,symptom:'风湿类风湿',tel:'13408866736',location:{lon:'22.5425040000',lat:'113.9566850000'}}," \
@@ -62,10 +61,11 @@ class LoginHandler(tornado.web.RequestHandler):
     # 返回 true 和 false 来判断是否正确
     def post(self, *args, **kwargs):
         username = self.get_argument('username')
-        print username
         password = self.get_argument('password')
+        userType = self.get_argument('userType')
         print u'当前类：LoginHandler', username, password
-        r = LoginControl.authUser(redis_connect, username, password)
+        r = LoginControl.authUser(redis_connect, username, password, userType)
+        print u'当前类：LoginHandler 返回码= ', r
         self.write(r)
 
 
@@ -94,7 +94,7 @@ class RegisterHandler(tornado.web.RequestHandler):
         entity['password'] = password
 
         r = LoginControl.registerPatientOrDoctor(redis_connect, entity, smscode, userType)
-        print u'当前类：RegisterHandler', tel, smscode, 'resultcode %s'%r
+        print u'当前类：RegisterHandler', tel, smscode, 'resultcode %s' % r
         self.write(r)
 
 
@@ -118,7 +118,8 @@ class DetailTaskHandler(tornado.web.RequestHandler):
         detailTask['lon'] = self.get_argument('lon')
         detailTask['patient_tel'] = self.get_argument('patient_tel')
         detailTask['patient_name'] = self.get_argument('patient_name')
-        TaskControl.addTask(redis_connect,detailTask)
+        TaskControl.addTask(redis_connect, detailTask)
+
 
 # 测试服务器正常运行
 class IndexHandler(tornado.web.RequestHandler):
@@ -139,14 +140,19 @@ class HelpHandler(tornado.web.RequestHandler):
 
 class SendSmscodeHandler(tornado.web.RequestHandler):
     def get(self, *args):
-        p2=re.compile('^0\d{2,3}\d{7,8}$|^1[3587]\d{9}$|^147\d{8}') # 电话号码匹配正则
+        p2 = re.compile('^0\d{2,3}\d{7,8}$|^1[3587]\d{9}$|^147\d{8}')  # 电话号码匹配正则
         if p2.match(args[0]):
-            print 'current method is SendSmscodeHandler--get tel = %s' % args[0]
-            r = LoginControl.sendSmscode(redis_connect, args[0])
-            print self.request.remote_ip  # 获取远程客户端IP
+            print 'current method is SendSmscodeHandler--get tel = %s ,connection IP : %s' % (
+            args[0], self.request.remote_ip)
+            r = LoginControl.sendSmscode(redis_connect, args[0], self.request.remote_ip)  # 获取远程客户端IP
         else:
-            r = '200105' #电话号码有误
+            r = '200105'  # 电话号码有误
         self.write(r)
+
+
+class addTaskHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        self.get_argument('')
 
 
 class OtherHandler(tornado.web.RequestHandler):
@@ -154,7 +160,7 @@ class OtherHandler(tornado.web.RequestHandler):
 
     def get(self, *args, **kwargs):
         print 'render postTask.html'
-        self.render('login.html')
+        self.render('other.html')
 
 
 if __name__ == '__main__':
@@ -168,6 +174,7 @@ if __name__ == '__main__':
                                               (r'/login/', LoginHandler),
                                               (r'/register/', RegisterHandler),
                                               (r'/sendSmscode/tel=(.*)', SendSmscodeHandler),
+                                              (r'/addTask/', addTaskHandler),
                                               (r'/.*', OtherHandler)
                                               ],
                                     template_path=os.path.join(os.path.dirname(__file__), 'templates'),

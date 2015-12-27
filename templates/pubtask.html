@@ -21,8 +21,14 @@
 </head>
 <body onload="gettime()">
 <form method="post" action="/register/">
-
-
+    <input type="button" value="test" onclick="gettime()">
+    症状<select name="symptom">
+    <option value="all" >-请选择-</option>
+    <option value="头痛"selected="selected">头痛</option>
+    <option value="腹泻">腹泻</option>
+    <option value="风湿">风湿</option>
+    <option value="面瘫">面瘫</option>
+    </select><br><br>
     时间<input type="datetime" name="datetime" id="time1"><br>
     精度<input name="lat" value="22.543474"><br>
     纬度<input name="lon" value="113.958452"><br>

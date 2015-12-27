@@ -10,7 +10,7 @@ def authUser(redis_connect, username, password,userType):
     r = RedisDAO.isExistsPatientOrDoctor(redis_connect, username,userType)
     if r=='200201':
         return '200201'# 提交的用户类型错误
-    if r != False:
+    if r :
         pwd = RedisDAO.redisQueryPatientOrDoctorPWD(redis_connect,username,userType)
         print u'当前密码 ： %s'% pwd
         if password == pwd:
@@ -18,7 +18,7 @@ def authUser(redis_connect, username, password,userType):
         else:
             return '200203'  # 帐号或密码错误
     else:
-        return '200203'  # 帐号或密码错误
+        return '200204'  # 用户不存在
 
 
 # 注册病人
@@ -28,7 +28,7 @@ def authUser(redis_connect, username, password,userType):
 # 返回值 L{templates/result.html}
 def registerPatientOrDoctor(redis_connect, entity, smscode, userType):
     tel = entity.get('tel')
-    r = RedisDAO.isExistsPatient(redis_connect, tel)
+    r = RedisDAO.isExistsPatientOrDoctor(redis_connect, tel,userType)
     if r:
         return '200101'  # 该用户已经存在
     else:
@@ -55,8 +55,13 @@ def updataPatientInfo(redis_connect, patient):
 
 
 # 发送验证码
-def sendSmscode(redis_connect, tel):
-    # todo 注意恶意刷短信
+def sendSmscode(redis_connect, tel,remoteIP):
+    # todo 注意同一IP恶意刷短信
+
+    # 同一号码 60秒内无法重复注册
+    if redis_connect.exists('smscode_%s' % tel):
+        return '200105' # 验证码已发送，请稍候
+
     smscode = int(random.uniform(1000, 9999))
     redis_connect.set('smscode_%s' % tel, smscode, ex=60)  # 将短信验证码写入 redis
     # todo send smscode to smsdata

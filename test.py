@@ -7,8 +7,19 @@ import redis
 import os
 from tornado.options import define, options
 import re
+from dao import RedisDAO
+import threading
 
+def deleteSelectAll():
+    redis_connect = RedisDAO.connect("192.168.1.18")
+    l = redis_connect.keys('hash_doctor_*')
+    pipeline = redis_connect.pipeline()
+    for i in l:
+        pipeline.delete(i)
+    print pipeline.execute()
 
+def hi():
+    print 'hi'
 
 if __name__ == "__main__":
     d = {'name':'songchao','age':'22'}
@@ -19,6 +30,5 @@ if __name__ == "__main__":
     l.append(d2)
     l.append(d3)
 
-    import json
 
-    print json.dumps(l)
+    threading.Timer(10000,hi())

@@ -93,13 +93,10 @@ def isExistsPatientOrDoctor(redis_connect, tel, userType):
     return r
 
 
-def publishTask(redis_connect, detailTask):
-    return redis_connect.publish('tasks', str(detailTask) if (isinstance(detailTask, str)) else detailTask)
-
-
 if __name__ == "__main__":
     redis_connect = connect('192.168.1.18')
 
-    r = redisQueryPatientOrDoctor(redis_connect, '15272826842', 'doctor')
+    # r = redisQueryPatientOrDoctor(redis_connect, '15272826842', 'doctor')
 
-    print r
+    # print r
+
