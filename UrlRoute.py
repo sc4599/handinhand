@@ -12,9 +12,6 @@ from util.Util import Config
 import socket
 from control import TaskControl, LoginControl
 # 测试数据
-testSTR = r"[{id:1,gender:'m',age:20,symptom:'头动脑热',tel:'15012822291',location:{lon:'22.5431720000',lat:'113.9587510000'}}," \
-          r"{id:2,gender:'m',age:22,symptom:'风湿类风湿',tel:'13408866736',location:{lon:'22.5425040000',lat:'113.9566850000'}}," \
-          r"{id:3,gender:'f',age:22,symptom:'小儿咳嗽',tel:'17093468643',location:{lon:'22.5426540000',lat:'113.9630090000'}}]"
 
 localIP = socket.gethostbyname(socket.gethostname())  # 这个得到本地ip
 port = 8002
@@ -98,29 +95,6 @@ class RegisterHandler(tornado.web.RequestHandler):
         self.write(r)
 
 
-class DetailTaskHandler(tornado.web.RequestHandler):
-    def get(self, *args, **kwargs):
-        pass
-
-        # print(u'开始连接redis。。。')
-        # r = connect()
-        # print(u'连接redis成功！！！！！！！！！！')
-        # p = r.pubsub()
-        # p.subscribe()
-        # r.publish('deltailTask', args[0])
-
-    def post(self, *args, **kwargs):
-        detailTask = {}
-        detailTask['symptom'] = self.get_argument('symptom')
-        detailTask['type'] = self.get_argument('type')
-        detailTask['datetime'] = int(time.time())
-        detailTask['lat'] = self.get_argument('lat')
-        detailTask['lon'] = self.get_argument('lon')
-        detailTask['patient_tel'] = self.get_argument('patient_tel')
-        detailTask['patient_name'] = self.get_argument('patient_name')
-        TaskControl.addTask(redis_connect, detailTask)
-
-
 # 测试服务器正常运行
 class IndexHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
@@ -143,7 +117,7 @@ class SendSmscodeHandler(tornado.web.RequestHandler):
         p2 = re.compile('^0\d{2,3}\d{7,8}$|^1[3587]\d{9}$|^147\d{8}')  # 电话号码匹配正则
         if p2.match(args[0]):
             print 'current method is SendSmscodeHandler--get tel = %s ,connection IP : %s' % (
-            args[0], self.request.remote_ip)
+                args[0], self.request.remote_ip)
             r = LoginControl.sendSmscode(redis_connect, args[0], self.request.remote_ip)  # 获取远程客户端IP
         else:
             r = '200105'  # 电话号码有误
@@ -152,7 +126,29 @@ class SendSmscodeHandler(tornado.web.RequestHandler):
 
 class addTaskHandler(tornado.web.RequestHandler):
     def post(self, *args, **kwargs):
-        self.get_argument('')
+        detailTask = {}
+        detailTask['symptom'] = self.get_argument('symptom')
+        detailTask['type'] = self.get_argument('type', default='0')
+        detailTask['datetime'] = self.get_argument('datetime', default=str(int(time.time())))
+        detailTask['lat'] = self.get_argument('lat')
+        detailTask['lon'] = self.get_argument('lon')
+        detailTask['patient_tel'] = self.get_argument('patient_tel', )
+        detailTask['patient_name'] = self.get_argument('patient_name', )
+        detailTask['patient_gender'] = self.get_argument('patient_gender', )
+        detailTask['patient_age'] = self.get_argument('patient_age', )
+        detailTask['doctor_tel'] = self.get_argument('doctor_tel', default='00000000000')
+        detailTask['doctor_name'] = self.get_argument('doctor_name', default='无名氏')
+        detailTask['task_timeout'] = self.get_argument('task_timeout', default='3600')
+        detailTask['comment_id'] = self.get_argument('comment_id', default='1')
+        r = TaskControl.addTask(redis_connect, detailTask)
+        self.write(str(r))
+
+
+# 查询所有任务接口
+class queryAllTaskHandler(tornado.web.RequestHandler):
+    def get(self, *args, **kwargs):
+        r = TaskControl.queryAllTask(redis_connect)
+        self.write(r)
 
 
 class OtherHandler(tornado.web.RequestHandler):
@@ -163,11 +159,19 @@ class OtherHandler(tornado.web.RequestHandler):
         self.render('other.html')
 
 
-if __name__ == '__main__':
+# 启动TCP服务器
+def startTcpServer():
+    tcpserver = TWServer3.TCPserverContorl()
+    tcpserver.runServer()
+
+
+# 启动web服务器
+def startTornadoServer():
+    if redis_connect == 'connect failed':
+        print 'redis connect failed'
     # 开启 debug 模式
     settings = {'debug': True}
     myApp = tornado.web.Application(handlers=[(r'/', IndexHandler),
-                                              (r'/detailTask/msg=(.*)', DetailTaskHandler),
                                               (r'/resultCode/', ResultCodeHandler),
                                               (r'/help/', HelpHandler),
                                               (r'/testPost/', TestPostHandler),
@@ -175,6 +179,7 @@ if __name__ == '__main__':
                                               (r'/register/', RegisterHandler),
                                               (r'/sendSmscode/tel=(.*)', SendSmscodeHandler),
                                               (r'/addTask/', addTaskHandler),
+                                              (r'/queryAllTaskHandler/', queryAllTaskHandler),
                                               (r'/.*', OtherHandler)
                                               ],
                                     template_path=os.path.join(os.path.dirname(__file__), 'templates'),
@@ -183,3 +188,17 @@ if __name__ == '__main__':
     httpServer.listen(port)
     print r'server is runing.....at http://%s:%d ' % (localIP, port)
     tornado.ioloop.IOLoop.current().start()
+
+
+if __name__ == '__main__':
+    # 启动tcp服务器addToPatient
+    from firefly.TwistedReactor import TWServer3
+    # 使用线程启动 TornadoServer
+    import threading
+
+    tornadoServerThread = threading.Thread(target=startTornadoServer)
+    tornadoServerThread.start()
+    # tcpServerThread  = threading.Thread(target=startTcpServer)
+    # tcpServerThread.start()
+    # tornadoServerThread.join()
+    startTcpServer()
