@@ -4,89 +4,38 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>tree</title>
-    <link href="css/style.css" rel="stylesheet" type="text/css"/>
-    <style type="text/css">
-        .node ul {
-            margin-left: 20px;
-        }
+<script type="text/javascript">
+    function getAction(){
+        form1 = document.getElementById('testPost')
+        url1 = document.getElementById('toURL')
+        form1.action = url1.value
+        alert(form1.action)
+    }
 
-        .node .node {
-            display: none;
-        }
-
-        .node .tree {
-            height: 24px;
-            line-height: 24px;
-        }
-
-        .ce_ceng_close {
-            padding-left: 15px;
-        }
-
-        .ce_ceng_open {
-        }
-    </style>
-    <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+</script>
 </head>
 
 <body>
-<div class="cd_zj_l">
+-----------------------------------测试获取验证码-----------------------------------------------<br/>
 
+-----------------------------------测试POST-----------------------------------------------<br/>
+<form id="testPost" action="http://192.168.1.124:9090/"  method="post">
+    URL<input id="toURL" value="http://192.168.1.124:9090/"/><input type="button" value="更换url" onclick="getAction()"/><br>
+    消息<input name="type" value="0"/><br>
+    <input type="submit" >
+</form>
+-----------------------------------测试发布任务-----------------------------------------------<br/>
+<form action="http://192.168.1.124:8002/addTask/" method="post">
+    症状简介<input name="symptom" value="感冒"/><br>
+    为谁求医<input name="type" value="0"/><br>
+    病人精度<input name="lat" value="22.154451"/><br>
+    病人精度<input name="lon" value="116.788874"/><br>
+    病人电话<input name="patient_tel" value="13887083253"/><br>
+    病人名字<input name="patient_name" value="皮皮"/><br>
+    病人年龄<input name="patient_age" value="22"/><br>
+    病人性别<input name="patient_gender" value="男"/><br>
+    <input type="submit" >
+</form>
 
-    <div class="cd_title">目录导航</div>
-    <div class="cv_fcv node">
-        <div class="tree">哲学、宗教</div>
-        <ul class="node">
-            <li>
-                <div class="tree">哲学伦理</div>
-                <ul class="node">
-                    <li>
-                        <div class="tree">马克思主义哲学</div>
-                        <div class="tree">马克思主义哲学</div>
-                        <div class="tree">马克思主义哲学</div>
-                        <div class="tree">马克思主义哲学</div>
-                    </li>
-                    <div style="clear:both"></div>
-                </ul>
-
-            </li>
-            <div style="clear:both"></div>
-        </ul>
-        <div class="tree">哲学、宗教</div>
-        <ul class="node">
-            <li>
-                <div class="tree">哲学伦理</div>
-                <ul class="node">
-                    <li>
-                        <div class="tree">马克思主义哲学</div>
-                        <div class="tree">马克思主义哲学</div>
-                        <div class="tree">马克思主义哲学</div>
-                        <div class="tree">马克思主义哲学</div>
-                    </li>
-                </ul>
-            </li>
-        </ul>
-    </div>
-</div>
-<script type="text/javascript">
-    $(".tree").each(function (index, element) {
-        if ($(this).next(".node").length > 0) {
-            $(this).addClass("ce_ceng_close");
-        }
-    });
-    $(".tree").click(function (e) {
-        var ul = $(this).next(".node");
-        if (ul.css("display") == "none") {
-            ul.slideDown();
-            $(this).addClass("ce_ceng_open");
-            ul.find(".ce_ceng_close").removeClass("ce_ceng_open");
-        } else {
-            ul.slideUp();
-            $(this).removeClass("ce_ceng_open");
-            ul.find(".node").slideUp();
-            ul.find(".ce_ceng_close").removeClass("ce_ceng_open");
-        }
-    });
-</script>
 </body>
 </html>

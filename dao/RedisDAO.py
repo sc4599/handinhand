@@ -1,8 +1,6 @@
 # coding:utf8
-import uuid
 import redis
-from entity.Entity import DetailTask
-from util.Util import Config
+import json
 
 globalsR = None
 
@@ -29,6 +27,17 @@ def saveDetailTask(redis_connect, detailTask):
     r.hmset(taskid, detailTask)
     print u'储存完毕'
     return '200200'  # 数据写入成功
+
+# 查询当前频道所有任务
+# return json 格式的所有任务
+def queryChannelTask(redis_connect):
+    r = redis_connect.keys('channel_hash_detailTask*')
+    l = []
+    for e in r:
+        rh = redis_connect.hgetall(e)
+        l.append(rh)
+    return json.dumps(l)
+
 
 
 # 储存病人资料到redis中
@@ -96,7 +105,4 @@ def isExistsPatientOrDoctor(redis_connect, tel, userType):
 if __name__ == "__main__":
     redis_connect = connect('192.168.1.18')
 
-    # r = redisQueryPatientOrDoctor(redis_connect, '15272826842', 'doctor')
-
-    # print r
 
