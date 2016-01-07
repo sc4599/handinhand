@@ -1,11 +1,11 @@
 # -*- coding:utf-8 –*-
 from twisted.web import server, resource, static
-from twisted.protocols.basic import LineOnlyReceiver
+from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import Factory
 from twisted.internet import reactor
 
 
-class TcpServerHandle(LineOnlyReceiver):
+class TcpServerHandle(LineReceiver):
     def __init__(self, factory):
         self.factory = factory
 
@@ -14,15 +14,25 @@ class TcpServerHandle(LineOnlyReceiver):
         print '...connectionMade self type=', type(self)
         self.sendLine('...welcome to china:')
         self.factory.clients.add(self)  # 新连接添加连接对应的Protocol实例到clients
-
+        if self in self.factory.doctors:
+            self.factory.doctors
+    # 连接断开时候 执行
     def connectionLost(self, reason):
         print '...connectionLost self type=', type(self)
-        print '...reason = ', reason
+        # print '...reason dir= ',(dir(reason))
+        # print '...reason __dict__= ',(reason.__dict__)
+        # print '...self = ', (id(self))
         self.factory.clients.remove(self)  # 连接断开移除连接对应的Protocol实例
+        if self in self.factory.doctors.keys():
+            del self.factory.doctors[self]
+            print 'doctor client removed'
+        elif self in self.factory.patients.keys():
+            del self.factory.patients[self]
+            print 'patient client removed'
 
-    # 接受到消息的时候执行
-    def lineReceived(self, line):
-        print '...lineReceived self type=', type(self)
+    # 接受消息时候出发此方法。
+    # # @line 或得到的消息详细内容
+    def dataReceived(self, line):
         print '...current line is :%s' % line
         # 连接服务器收到  doctor:::15012822291:::msg  这样的格式的信息
         #                  type:::tel:::other
@@ -38,25 +48,27 @@ class TcpServerHandle(LineOnlyReceiver):
             self.factory.addToPatient(tel,self)
         self.sendLine('succeed')
 
+
+
 # tcp服务器工厂， 添加方法，供所有协议调用
 class TcpServerFactory(Factory):
     def __init__(self):
         self.clients = set()  # set集合用于保存所有连接到服务器的客户端
         self.doctors = {}
         self.patients = {}
-
+    #构造协议对象，并给协议对象添加一个factory属性指向工厂，可以重载
     def buildProtocol(self, addr):
         print '...this is buildProtocol addr = ', addr
         return TcpServerHandle(self)
-
+    #添加doctor
     def addToDoctors(self, tel, instance):
-        self.doctors[tel] = instance
+        self.doctors[instance] = tel
         print self.doctors
         print '...current doctor counts = %d' % len(self.doctors)
-
+    #添加patient
     def addToPatient(self, tel, instance):
-        self.patients[tel] = instance
-
+        self.patients[instance] = tel
+    #向所有医生发消息
     def sendToDoctors(self, data):
         for c in self.doctors.values():
             c.sendLine(data)
@@ -64,38 +76,39 @@ class TcpServerFactory(Factory):
 # 将 factory公有， 让web服务器实现类调用
 tfactory = TcpServerFactory()
 
-
-
 # http 请求处理类
 class Simple(resource.Resource):
     def __init__(self):
         resource.Resource.__init__(self)
         self.putChild("", self)
-
+    #获取get请求
     def render_GET(self, request):
         print '...this is render_GET !!!!'
-        # 给所有在线客户发消息
-        # self.sendToAll('hello tcp')
-        return "...Hello, world!"
-
+        print (request.__dict__)
+        doctors = len(tfactory.doctors)
+        patients = len(tfactory.patients)
+        return "...current online doctors =%d,patients =%d"%(doctors,patients)
+    #获取post请求
     def render_POST(self,request):
         print '...this is render_POST !!!!'
         print (request.__dict__)
         msg = request.content.getvalue().split('=')[1]
         # self.sendToAll(msg)
         # print request.args.get('type')[0]
-        self.sendToAll(msg)
+        self.sendToAllDoctors(msg)
         return '...succeed...'
-
-    def sendToAll(self, msg):
+    #发送广播给医生
+    def sendToAllDoctors(self, msg):
         tfactory.sendToDoctors(msg)
+
+
 
 class TCPserverContorl(object):
     def __init__(self, httpPORT = 9080, tcpPORT = 9081):
         print '...TCPserver listen %d for http...' % httpPORT
         print '...TCPserver listen %d for tcp...' % tcpPORT
-        reactor.listenTCP(9080, server.Site(Simple()))
-        reactor.listenTCP(9081, tfactory)
+        reactor.listenTCP(httpPORT, server.Site(Simple()))
+        reactor.listenTCP(tcpPORT, tfactory)
 
     def runServer(self):
         print '...starting TCPserver.....'
