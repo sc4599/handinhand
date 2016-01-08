@@ -16,6 +16,7 @@ class TcpServerHandle(LineReceiver):
         self.factory.clients.add(self)  # 新连接添加连接对应的Protocol实例到clients
         if self in self.factory.doctors:
             self.factory.doctors
+
     # 连接断开时候 执行
     def connectionLost(self, reason):
         print '...connectionLost self type=', type(self)
@@ -24,10 +25,14 @@ class TcpServerHandle(LineReceiver):
         # print '...self = ', (id(self))
         self.factory.clients.remove(self)  # 连接断开移除连接对应的Protocol实例
         if self in self.factory.doctors.keys():
+            tel = self.factory.doctors[self]
             del self.factory.doctors[self]
+            del self.factory.doctorsKV[tel]
             print 'doctor client removed'
         elif self in self.factory.patients.keys():
+            tel = self.factory.patients[self]
             del self.factory.patients[self]
+            del self.factory.patientsKV[tel]
             print 'patient client removed'
 
     # 接受消息时候出发此方法。
@@ -45,9 +50,8 @@ class TcpServerHandle(LineReceiver):
         elif line.startswith('patient:::'):
             tel = line.split(':::')[1]
             print '...I am patient add to patients tel = %s' % tel
-            self.factory.addToPatient(tel,self)
+            self.factory.addToPatient(tel, self)
         self.sendLine('succeed')
-
 
 
 # tcp服务器工厂， 添加方法，供所有协议调用
@@ -55,56 +59,90 @@ class TcpServerFactory(Factory):
     def __init__(self):
         self.clients = set()  # set集合用于保存所有连接到服务器的客户端
         self.doctors = {}
+        self.doctorsKV = {}
         self.patients = {}
-    #构造协议对象，并给协议对象添加一个factory属性指向工厂，可以重载
+        self.patientsKV = {}
+
+    # 构造协议对象，并给协议对象添加一个factory属性指向工厂，可以重载
     def buildProtocol(self, addr):
         print '...this is buildProtocol addr = ', addr
         return TcpServerHandle(self)
-    #添加doctor
+
+    # 添加doctor
     def addToDoctors(self, tel, instance):
+        self.doctorsKV[tel] = instance
         self.doctors[instance] = tel
         print self.doctors
         print '...current doctor counts = %d' % len(self.doctors)
-    #添加patient
+
+    # 添加patient
     def addToPatient(self, tel, instance):
+        self.patientsKV[tel] = instance
         self.patients[instance] = tel
-    #向所有医生发消息
+        print '...current patient counts = %d' % len(self.patients)
+
+    # 向所有医生发消息
     def sendToDoctors(self, data):
         for c in self.doctors.values():
             c.sendLine(data)
 
+    def sendToDoctor(self, tel, data):
+        self.doctorsKV.get[tel].sendLine(data)
+
+    def sendToPatient(self, tel, data):
+        self.patientsKV.get[tel].sendLine(data)
+
+
 # 将 factory公有， 让web服务器实现类调用
 tfactory = TcpServerFactory()
+
 
 # http 请求处理类
 class Simple(resource.Resource):
     def __init__(self):
         resource.Resource.__init__(self)
         self.putChild("", self)
-    #获取get请求
+
+    # 获取get请求
     def render_GET(self, request):
         print '...this is render_GET !!!!'
         print (request.__dict__)
         doctors = len(tfactory.doctors)
         patients = len(tfactory.patients)
-        return "...current online doctors =%d,patients =%d"%(doctors,patients)
-    #获取post请求
-    def render_POST(self,request):
+        return "...current online doctors =%d,patients =%d" % (doctors, patients)
+
+    # 获取post请求
+    def render_POST(self, request):
         print '...this is render_POST !!!!'
         print (request.__dict__)
-        msg = request.content.getvalue().split('=')[1]
-        # self.sendToAll(msg)
-        # print request.args.get('type')[0]
-        self.sendToAllDoctors(msg)
+        what = request.args.get('what')
+        if what == None:
+            return '...Please specify the event type...(what ="addTask" or what = "acceptTask")'
+        if what == 'addTask':
+            # 发布任务
+            msg = request.args.get('data')
+            self.sendToAllDoctors(msg)
+        elif what == 'acceptTask':
+            # 医生接受任务
+            msg = request.args.get('data')
+            tel = request.args.get('tel')
+            tfactory.sendToPatient(tel, msg)
+        elif what == 'acceptDoctor':
+            # 病人选择医生
+            tel = request.args.get('tel')
+            msg = request.args.get('data')
+            tfactory.sendToDoctor(tel,msg)
         return '...succeed...'
-    #发送广播给医生
+
+    # 发送广播给医生
     def sendToAllDoctors(self, msg):
         tfactory.sendToDoctors(msg)
 
 
 
+
 class TCPserverContorl(object):
-    def __init__(self, httpPORT = 9080, tcpPORT = 9081):
+    def __init__(self, httpPORT=9080, tcpPORT=9081):
         print '...TCPserver listen %d for http...' % httpPORT
         print '...TCPserver listen %d for tcp...' % tcpPORT
         reactor.listenTCP(httpPORT, server.Site(Simple()))

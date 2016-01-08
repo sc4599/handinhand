@@ -98,6 +98,7 @@ class Simple(resource.Resource):
         msg = request.content.getvalue().split('=')[1]
         # self.sendToAll(msg)
         # print request.args.get('type')[0]
+        print request.args.get('tel')[0]
         self.sendToAll(msg)
         return '...ok...'
     def getChild(self, path, request):
