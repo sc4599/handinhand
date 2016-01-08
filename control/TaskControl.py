@@ -2,7 +2,9 @@
 import uuid
 import json, time
 from dao import RedisDAO
-import urllib2,urllib
+import urllib2, urllib
+
+
 # rc = RedisDAO.connect('192.168.1.18')
 
 
@@ -10,6 +12,9 @@ import urllib2,urllib
 # @detailTask  任务实体，字典格式
 # return 返回当前频道接受到任务的人数
 def addTask(redis_connect, detailTask):
+    key = 'channel_hash_detailTask_' + detailTask.get('tel') + '*'
+    if redis_connect.keys(key):
+        return '200303'  # 同一个人同时只能发布一个任务
     if not redis_connect.exists(detailTask.get('id')):
         # 生成详细任务ID
         detailTask['id'] = 'hash_detailTask_%s_%s' % (detailTask.get('patient_tel'), int(time.time()))
@@ -17,82 +22,89 @@ def addTask(redis_connect, detailTask):
         redis_connect.hmset('channel_%s' % detailTask.get('id'), detailTask)
         # 2.将任务通过接口url给TCP服务器
         pushTask(redis_connect)
-        # redis_connect.lpush('list_handinhand_current_task', detailTask.get('id'))
-        # # 当前任务列表
-        list_handinhand_current_task = []
-        # # 先查到list长度， 迭代list中内个key ， 通过key查找对应的 hash， 存入Json，发布到频道中
-        # for i in range(redis_connect.llen('list_handinhand_current_task')):
-        #     key = redis_connect.lindex('list_handinhand_current_task', i)
-        #     list_handinhand_current_task.append(redis_connect.hgetall(key))
-        r = redis_connect.keys('channel_*')
-        for k in r:
-            list_handinhand_current_task.append(redis_connect.hgetall(k))
-        j = json.dumps(list_handinhand_current_task)  # 将 字段转换成json
-        # print j # 打印当前任务信息
-        redisPublist(redis_connect, j)  # 将任务发布到任务频道 返回当前频道接受到任务的人数
-        return '10002'# 发布任务成功
+
+        return '10002'  # 发布任务成功
     else:
         return '200301'  # 同一人同时间重复提交任务
 
-# def pushTask(redis_connect):
-#     r = queryAllTask(redis_connect)
-#     print type(r)
-#     url = 'http://192.168.1.124:9080/'+r
-#     req = urllib2.Request(url)
-#     res_data = urllib2.urlopen(req)
-#     res = res_data.read()
-#     if  res == '...succeed...':
-#         return '10001' # 推送任务成功
-#     else:
-#         return '200401'# 与tcp服务器连接异常
 
-def pushTask(redis_connect):
-    r = queryAllTask(redis_connect)
+# 通过url接口打任务 给TCP服务器，
+# @what 事件类型
+# @doctor_tel 医生电话
+# @patient_tel 病人电话
+def pushTask(redis_connect,what,doctor_tel=None,patient_tel=None):
     url = 'http://192.168.1.124:9080/'
-    values = {'msg': r}
+    if what == 'addTask':
+        data = queryAllTask(redis_connect)
+        values = {'what': what,'data':data}
+    elif what == 'acceptTask':
+        if doctor_tel == None or patient_tel==None:
+            return '200402' #  必须传递医生和病人电话号码
+        data = queryDoctorByTel(redis_connect,doctor_tel)
+        values = {'what': what,'tel':doctor_tel,'data':data}
+    elif what == 'acceptDoctor':
+        if doctor_tel == None or patient_tel==None:
+            return '200402' #  必须传递医生和病人电话号码
+        # data =
     post_data = urllib.urlencode(values)
     req = urllib2.Request(url, data=post_data)
-    response  = urllib2.urlopen(req)
+    response = urllib2.urlopen(req)
     res = response.read()
-    if  res == '...succeed...':
-        return '10001' # 推送任务成功
+    if res == '...succeed...':
+        return '10001'  # 推送任务成功
     else:
-        return '200401'# 与tcp服务器连接异常
+        return '200401'  # 与tcp服务器连接异常
 
 
 # 接受任务处理函数
 # @redis_connect  连接Redis操作实体
-# @detailTask 任务实体，字典格式
+# @detailTask 任务实体，字典格式(必须具备id，task_timeout默认30分)
 # @doctor_tel 医生电话
-def accept(redis_connect, detailTask, doctor_tel):
+def acceptTask(redis_connect, detailTask, doctor_tel):
     pipeline = redis_connect.pipeline()
-    doctor_count = len(redis_connect.keys('%s*' % detailTask.get('id')))
+    doctor_count = len(redis_connect.llen('list_%s_doctors' % detailTask.get('id')))
 
-    # 判断当前医生数量
+    # 1.判断当前任务医生数量
     if doctor_count == 0:
-        pipeline.expire('channel_%s' % detailTask.get('id'), int(detailTask.get('task_timeout')))  # 为在线任务通道任务添加过期时间
-        pipeline.execute()  # 事务执行
-
-    elif doctor_count < 3:
-        doctor_count = doctor_count + 1
-        pipeline.hset(detailTask.get('id'), 'doctor_count', doctor_count)
-        # 如果是第一个人接任务， 则给任务设置声明周期。
-        pipeline.hset(detailTask.get('id'), 'accept_time', int(time.time()))  # 为任务详细中 更新该任务的接受时间
-        pipeline.execute()  # 事务执行
-    else:
+        # 2.如果是第一次被接受则在任务集合中保存并设立过期时间
+        pipeline.expire('channel_%s' % detailTask.get('id'), int(detailTask.get('task_timeout')))
+    elif doctor_count >= 3:
         return '200302'  # 当前任务接受者以满
 
+    # 判断医生当前已接受任务数量
+    current_doctor_tasks = redis_connect.hget('hash_doctor_%s' % doctor_tel, 'current_task_count')
+    if current_doctor_tasks < 5:
+        # 3.医生当前已接受任务数量+1
+        current_doctor_tasks = current_doctor_tasks + 1
+        redis_connect.hset('hash_doctor_%s' % doctor_tel, 'current_task_count', current_doctor_tasks)
+    else:
+        return '200304'  # 当前医生可接受任务数量已满
 
-# @redis_connect  连接Redis操作实体
-# @jsonEntity  对应的实体字典转换出来的json
-# @channel  发布消息通道 默认是 'handinhand'
-# return 接收到这条广播的人数
-def redisPublist(redis_connect, jsonEntity, channel='handinhand'):
-    return redis_connect.publish(channel, jsonEntity)
+    # 4.当前任务医生数+1
+    doctor_count = doctor_count + 1
+    pipeline.hset(detailTask.get('id'), 'doctor_count', doctor_count)
+    # 5.将医生添加到该任务的响应医生列表中
+    pipeline.lpush('list_%s_doctors' % detailTask.get('id'))
+    # 6.通知发任务的病人，有医生接单
+
+    pipeline.execute()  # 事务执行
+
+
+# 病人根据接单医生，选择为他治疗的医生
+def acceptDoctor(redis_connect, detailTask, doctor, patient):
+    # 1,更新任务里列表中该任务的病人牵手时间
+    redis_connect.hset(detailTask.get('id'), 'accept_time', int(time.time()))
+    # 2.通知被接受医生，病人已经选择了他
+
+    pass
+
 
 # 查询所有任务
 def queryAllTask(redis_connect):
     return RedisDAO.queryChannelTask(redis_connect)
+
+def queryDoctorByTel(redis_connect,tel):
+    return RedisDAO.queryDoctorByTel(redis_connect,tel)
 
 if __name__ == '__main__':
     rc = RedisDAO.connect('192.168.1.18')

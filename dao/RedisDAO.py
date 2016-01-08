@@ -38,7 +38,11 @@ def queryChannelTask(redis_connect):
         l.append(rh)
     return json.dumps(l)
 
-
+# 根据医生电话查询医生详细信息
+# return json格式 的医生实体信息
+def queryDoctorByTel(redis_connect,tel):
+    r = redis_connect.keys('hash_doctor_%s'%tel)
+    return json.dumps(r)
 
 # 储存病人资料到redis中
 def redisSavePatient(redis_connect, patient):
