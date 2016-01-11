@@ -1,7 +1,7 @@
-# coding = utf-8
+# -*- coding:utf-8 –*-
 
 import time
-
+from qiniu import Auth,put_data,put_file,etag
 import hashlib
 import json
 import urllib2
@@ -42,14 +42,49 @@ class Umeng(object):
             print e.reason
 
 class Qiniu(object):
-    pass
+    def __init__(self):
+        access_key = 'Q6OQ-uObfqSK65T-v9WuJTrQJIYigBkDdI5-wqJz'
+        secret_key = 'no-ZxV1TnVQ6ZJAqXr-tp0xoYOokcIE_g76weLjX'
+        self.bucket_name = 'qiniuspace'
+        self.q = Auth(access_key, secret_key)
+
+    def getupToken(self):
+        # 直接上传二进制流
+
+        key = 'nihao'
+        data = u'hello bubby!'
+        token = self.q.upload_token(self.bucket_name)
+        ret, info = put_data(token, key, data,)
+        print 'getupToken info = ',info
+        # assert ret['key'] == key
+        return token
+
+    def upToken2(self):
+        key = ''
+        data = 'hello bubby!'
+        token = self.q.upload_token(self.bucket_name, key,)
+        ret, info = put_data(token, key, data, mime_type="application/octet-stream", check_crc=True)
+        print(info)
+        assert ret['key'] == key
+
+    # 上传本地文件
+    def uploaclFile(self):
+        localfile = __file__
+        key = 'test_file'
+        mime_type = "text/plain"
+        params = {'x:a': 'a'}
+
+        token = self.q.upload_token(self.bucket_name, key)
+        ret, info = put_file(token, key, localfile, mime_type=mime_type, check_crc=True)
+        print(info)
+        assert ret['key'] == key
+        assert ret['hash'] == etag(localfile)
+        pass
 
 
 if __name__ == '__main__':
     print ''
 
-    # appkey = '5683510267e58e60e7000a3f'
-    # app_master_secret = 'nkk8lb8zioq9hq3p1evcms5lykd2guut'
-    # device_token = 'Apu7mfC-b5-SiLdAXOBKZZLOSqnn91pNoWcsya7ZwHqY'
-    #
-    # Umeng().push_unicast(appkey, app_master_secret, device_token)
+    qiniu = Qiniu()
+    uptoken = qiniu.getupToken()
+    print(uptoken)
