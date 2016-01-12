@@ -55,7 +55,7 @@ def updataPatientInfo(redis_connect, patient):
 
 
 # 发送验证码
-def sendSmscode(redis_connect, tel,remoteIP):
+def sendS0mscode(redis_connect, tel,remoteIP):
     # todo 注意同一IP恶意刷短信
 
     # 同一号码 60秒内无法重复注册
