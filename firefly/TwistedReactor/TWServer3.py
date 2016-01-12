@@ -130,7 +130,12 @@ class Simple(resource.Resource):
         elif what == 'acceptDoctor':
             # 病人选择医生
             tel = request.args.get('tel')
-            msg = request.args.get('data')
+            msg = 'accept'
+            tfactory.sendToDoctor(tel,msg)
+        elif what == 'unacceptDoctor':
+            # 病人选择医生
+            tel = request.args.get('tel')
+            msg = 'unaccept'
             tfactory.sendToDoctor(tel,msg)
         return '...succeed...'
 
