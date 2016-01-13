@@ -29,14 +29,14 @@ redis_connect = RedisDAO.connect(c.reidsIP)
 if redis_connect == 'connect failed':
     sys.exit()
 ipList = socket.gethostbyname_ex(socket.gethostname())
-for i in ipList:
-    if i != localIP:
-        print "external IP:%s" % i
+
+
+# for i in ipList:
+#     if i != localIP:
+#         print "external IP:%s" % i
 
 
 class TestPostHandler(tornado.web.RequestHandler):
-    print 'this is test post handler'
-
     def get(self, *args, **kwargs):
         pass
 
@@ -52,8 +52,6 @@ class TestPostHandler(tornado.web.RequestHandler):
 
 
 class LoginHandler(tornado.web.RequestHandler):
-    print 'this is loginHandler'
-
     def get(self, *args, **kwargs):
         pass
 
@@ -77,7 +75,6 @@ class RegisterHandler(tornado.web.RequestHandler):
     @smscode 接受到的短信验证码
     @:return L{result.html}
     '''
-    print 'this is RegisterHandler'
 
     def get(self, *args, **kwargs):
         pass
@@ -97,26 +94,39 @@ class RegisterHandler(tornado.web.RequestHandler):
         print u'当前类：RegisterHandler', tel, smscode, 'resultcode %s' % r
         self.write(r)
 
+
 # 更新病人基础信息
 class UpdataPatientHandler(tornado.web.RequestHandler):
     def post(self, *args, **kwargs):
-        print 'this is updataUser '
         patient = {}
-        patient['tel']=self.get_argument('tel')
-        patient['pic']=self.get_argument('pic')
-        patient['name']=self.get_argument('name')
-        patient['gender']=self.get_argument('gender')
-        patient['age']=self.get_argument('age')
-        patient['medical_history']=self.get_argument('medical_history',default='list_hash_detailTask_%s'%patient.get('tel'))
-        patient['collection_list_id']=self.get_argument('collection_list_id',default='list_collection_%s'%patient.get('tel'))
-        LoginControl.updataPatientInfo(redis_connect,patient)
+        patient['tel'] = self.get_argument('tel')
+        patient['pic'] = self.get_argument('pic', default=None)
+        patient['name'] = self.get_argument('name')
+        patient['gender'] = self.get_argument('gender')
+        patient['age'] = self.get_argument('age')
+        patient['medical_history'] = self.get_argument('medical_history',
+                                                       default='list_hash_detailTask_%s' % patient.get('tel'))
+        patient['collection_list_id'] = self.get_argument('collection_list_id',
+                                                          default='list_collection_%s' % patient.get('tel'))
+        r = LoginControl.updataPatientInfo(redis_connect, patient)
+        self.write(r)
+
+
+# 获取当前用户基本信息
+class PatientInfoHandler(tornado.web.RequestHandler):
+    def get(self, *args, **kwargs):
+        tel = args[0]
+        r = LoginControl.getCurrentPatientInfo(redis_connect, tel)
+        self.write(r)
+
 
 # 检查病人当前是否有任务发布
 class QueryTaskHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
         tel = args[0]
-        r = TaskControl.queryTask(redis_connect,patient_tel=tel)
+        r = TaskControl.queryTask(redis_connect, patient_tel=tel)
         self.write(r)
+
 
 # 测试服务器正常运行
 class IndexHandler(tornado.web.RequestHandler):
@@ -133,6 +143,7 @@ class ResultCodeHandler(tornado.web.RequestHandler):
 class HelpHandler(tornado.web.RequestHandler):
     def get(self):
         self.render('help.html')
+
 
 # 发送短信验证码
 class SendSmscodeHandler(tornado.web.RequestHandler):
@@ -168,14 +179,28 @@ class addTaskHandler(tornado.web.RequestHandler):
         r = TaskControl.addTask(redis_connect, detailTask)
         self.write(str(r))
 
-# 接受医生
-class AcceptDoctorHandler(tornado.web.RequestHandler):
+
+class EditTaskHandler(tornado.web.RequestHandler):
     def post(self, *args, **kwargs):
-        doctor_tel = self.get_argument('doctor_tel')
         detailTask = {}
-        detailTask['id']=self.get_argument('id')
-        r= TaskControl.acceptDoctor(redis_connect,detailTask,doctor_tel)
-        self.write(r)
+        detailTask['id'] = self.get_argument('id')
+        detailTask['symptom'] = self.get_argument('symptom')
+        detailTask['type'] = self.get_argument('type', default='0')
+        detailTask['datetime'] = self.get_argument('datetime', default=str(int(time.time())))
+        detailTask['lat'] = self.get_argument('lat')
+        detailTask['lon'] = self.get_argument('lon')
+        detailTask['patient_tel'] = self.get_argument('patient_tel', )
+        detailTask['patient_name'] = self.get_argument('patient_name', )
+        detailTask['patient_gender'] = self.get_argument('patient_gender', )
+        detailTask['patient_age'] = self.get_argument('patient_age', )
+        detailTask['doctor_tel'] = self.get_argument('doctor_tel', default='00000000000')
+        detailTask['doctor_name'] = self.get_argument('doctor_name', default='无名氏')
+        detailTask['user_tel'] = self.get_argument('user_tel', default='朋友电话')
+        detailTask['user_addr'] = self.get_argument('user_addr', default='朋友地址')
+        detailTask['task_timeout'] = self.get_argument('task_timeout', default='3600')
+        detailTask['comment_id'] = self.get_argument('comment_id', default='1')
+        r = TaskControl.editTask(redis_connect, detailTask)
+        self.write(str(r))
 
 
 # 查询所有任务接口
@@ -195,6 +220,16 @@ class acceptTaskHandler(tornado.web.RequestHandler):
         doctor_tel = self.get_argument('doctor_tel')
         r = TaskControl.acceptTask(redis_connect, detailTask, doctor_tel)
         self.write(str(r))
+
+
+# 接受医生
+class AcceptDoctorHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        doctor_tel = self.get_argument('doctor_tel')
+        detailTask = {}
+        detailTask['id'] = self.get_argument('id')
+        r = TaskControl.acceptDoctor(redis_connect, detailTask, doctor_tel)
+        self.write(r)
 
 
 class qiniuHandler(tornado.web.RequestHandler):
@@ -237,10 +272,12 @@ def startTornadoServer():
                                               (r'/login/', LoginHandler),
                                               (r'/register/', RegisterHandler),
                                               (r'/updataPatient/', UpdataPatientHandler),
+                                              (r'/patientInfo/tel=(.*)', PatientInfoHandler),
                                               (r'/sendSmscode/tel=(.*)', SendSmscodeHandler),
                                               (r'/queryTask/tel=(.*)', QueryTaskHandler),
                                               (r'/addTask/', addTaskHandler),
                                               (r'/acceptTask/', acceptTaskHandler),
+                                              (r'/editTask/', EditTaskHandler),
                                               (r'/acceptDoctor/', AcceptDoctorHandler),
                                               (r'/queryAllTaskHandler/', queryAllTaskHandler),
                                               (r'/qiniuUp/', qiniuHandler),
@@ -250,7 +287,8 @@ def startTornadoServer():
                                     **settings)
     httpServer = tornado.httpserver.HTTPServer(myApp)
     httpServer.listen(port)
-    print r'server is runing.....at http://%s:%d ' % (localIP, port)
+    ISOTIMEFORMAT = '%Y-%m-%d %X'
+    print r'server is runing.....at %s http://%s:%d ' % (time.strftime(ISOTIMEFORMAT, time.localtime()), localIP, port)
     tornado.ioloop.IOLoop.current().start()
 
 
