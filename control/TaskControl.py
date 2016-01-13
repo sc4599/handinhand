@@ -27,14 +27,16 @@ def addTask(redis_connect, detailTask):
     else:
         return '200301'  # 同一人同时间重复提交任务
 
+
 # 更新任务信息
-def editTask(redis_connect,detailTask):
+def editTask(redis_connect, detailTask):
     ttltime = redis_connect.ttl(detailTask.get('id'))
     if ttltime == -1:
-        redis_connect.hmset(detailTask.get('id'),detailTask)
-        return '10006' # 任务跟新成功
+        redis_connect.hmset(detailTask.get('id'), detailTask)
+        return '10006'  # 任务跟新成功
     else:
-        return '200304' # 当前任务已经有人接受，无法修改
+        return '200304'  # 当前任务已经有人接受，无法修改
+
 
 # 判断该用户当前是否有发布的任务
 def queryTask(redis_connect, patient_tel):
@@ -68,8 +70,10 @@ def pushTask(redis_connect, what, doctor_tel=None, patient_tel=None, ip='192.168
             return '200402'  # 必须传递医生和病人电话号码
         doctors = []
         for d in doctor_tel:
-            doctors.append(redis_connect.hget(d))
-        values = {'what': what, 'tel': doctor_tel, 'data': json.dumps(doctors)}
+            doctors.append(redis_connect.hgetall(d))
+        print doctor_tel
+        print 'acceptTask patient_tel+ data = ', patient_tel, json.dumps(doctors)
+        values = {'what': what, 'tel': patient_tel, 'data': json.dumps(doctors)}
     # 病人接受医生 TODO（要推送的数据是 1，给被选中的医生回复成功。2，给未被选中的医生回复未被选中由服务器来做）
     elif what == 'acceptDoctor':
         if doctor_tel == None:
@@ -107,25 +111,28 @@ def acceptTask(redis_connect, detailTask, doctor_tel):
 
     # 判断医生当前已接受任务数量
     current_doctor_tasks = redis_connect.hget('hash_doctor_%s' % doctor_tel, 'current_task_count')
-    if current_doctor_tasks < 5:
+    print 'def acceptTask tasks = ',current_doctor_tasks
+    if current_doctor_tasks == None:
+        current_doctor_tasks = 0
+    if int(current_doctor_tasks) < 5:
         # 3.医生当前已接受任务数量+1
-        current_doctor_tasks = current_doctor_tasks + 1
+        current_doctor_tasks = int(current_doctor_tasks) + 1
         redis_connect.hset('hash_doctor_%s' % doctor_tel, 'current_task_count', current_doctor_tasks)
     else:
-        return '200304'  # 当前医生可接受任务数量已满
+        return '200305'  # 当前医生可接受任务数量已满
 
     # 4.当前任务医生数+1
     doctor_count = doctor_count + 1
     pipeline.hset(detailTask.get('id'), 'doctor_count', doctor_count)
     # 5.将医生添加到该任务的响应医生列表中
-    pipeline.lpush('list_%s_doctors' % detailTask.get('id'), 'hash_doctor_%s' % doctor_tel)
+    redis_connect.lpush('list_%s_doctors' % detailTask.get('id'), 'hash_doctor_%s' % doctor_tel)
     # 6.通知发任务的病人，有医生接单
     list_doctors = redis_connect.lrange('list_%s_doctors' % detailTask.get('id'), 0, -1)
-    doctor_tels = [i[12:] for i in list_doctors]
-    pushTask(redis_connect, 'acceptTask', doctor_tels, detailTask.get('patient_tel'))
+    print 'befor send list_doctors = ',list_doctors
+    pushTask(redis_connect, 'acceptTask', list_doctors, detailTask.get('patient_tel'))
 
     pipeline.execute()  # 事务执行
-    return ''
+    return '10008' # 接受任务成功
 
 
 # 病人根据接单医生，选择为他治疗的医生

@@ -133,7 +133,7 @@ class Simple(resource.Resource):
             # 医生接受任务
             msg = request.args.get('data')[0]
             tel = request.args.get('tel')[0]
-            print msg,tel
+            print '...this is render_POST acceptTask msg+tel =', msg,tel
             tfactory.sendToPatient(tel, msg)
             return '...succeed...acceptTask'
         elif what == 'acceptDoctor':

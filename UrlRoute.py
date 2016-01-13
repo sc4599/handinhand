@@ -215,7 +215,7 @@ class acceptTaskHandler(tornado.web.RequestHandler):
     def post(self, *args, **kwargs):
         detailTask = {}
         detailTask['id'] = self.get_argument('id')
-        detailTask['task_timeout'] = self.get_argument('task_timeout')
+        detailTask['task_timeout'] = self.get_argument('task_timeout',default=1800)
         detailTask['patient_tel'] = self.get_argument('patient_tel')
         doctor_tel = self.get_argument('doctor_tel')
         r = TaskControl.acceptTask(redis_connect, detailTask, doctor_tel)
