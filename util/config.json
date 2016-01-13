@@ -10,5 +10,14 @@
         "username": "sc4599",
         "password": "songchao",
         "database": "handinhand"
+    },
+    "socket": {
+        "ip": "192.168.1.124",
+        "port": "9081"
+    },
+    "http": {
+        "ip": "192.168.1.124",
+        "port": "9080"
     }
+
 }
