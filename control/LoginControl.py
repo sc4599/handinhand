@@ -1,6 +1,6 @@
 # coding:utf8
 from dao import MysqlDAO, RedisDAO
-
+import json
 import random
 
 
@@ -51,9 +51,15 @@ def registerPatientOrDoctor(redis_connect, entity, smscode, userType):
 
 # 完善资料
 def updataPatientInfo(redis_connect, patient):
-    RedisDAO.redisSavePatient(redis_connect, patient)
+    return RedisDAO.redisSavePatient(redis_connect, patient)
 
-
+# 获取当前用户信息
+def getCurrentPatientInfo(redis_connect,tel):
+    r = redis_connect.hgetall('hash_patient_%s'%tel)
+    if r:
+        return json.dumps(r)
+    else:
+        return '200107' # 查无此用户
 # 发送验证码
 def sendS0mscode(redis_connect, tel,remoteIP):
     # todo 注意同一IP恶意刷短信
