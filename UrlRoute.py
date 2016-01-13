@@ -10,6 +10,7 @@ from dao import MysqlDAO, RedisDAO
 from util.Util import Config
 # 获取本机IP
 import socket
+import sys
 from control import TaskControl, LoginControl
 # 测试数据
 
@@ -20,11 +21,13 @@ print "local ip:%s " % localIP
 
 # 获取配置文件信息
 c = Config()
+c.getINIT()
 # 与mysql建立连接
 db = MysqlDAO.connectMYSQL(c.mysqlIP, c.mysqlDATABASE, c.mysqlUSERNAME, c.mysqlPASSWORD)
 # 与 redis 建立连接
 redis_connect = RedisDAO.connect(c.reidsIP)
-
+if redis_connect == 'connect failed':
+    sys.exit()
 ipList = socket.gethostbyname_ex(socket.gethostname())
 for i in ipList:
     if i != localIP:
@@ -94,6 +97,26 @@ class RegisterHandler(tornado.web.RequestHandler):
         print u'当前类：RegisterHandler', tel, smscode, 'resultcode %s' % r
         self.write(r)
 
+# 更新病人基础信息
+class UpdataPatientHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        print 'this is updataUser '
+        patient = {}
+        patient['tel']=self.get_argument('tel')
+        patient['pic']=self.get_argument('pic')
+        patient['name']=self.get_argument('name')
+        patient['gender']=self.get_argument('gender')
+        patient['age']=self.get_argument('age')
+        patient['medical_history']=self.get_argument('medical_history',default='list_hash_detailTask_%s'%patient.get('tel'))
+        patient['collection_list_id']=self.get_argument('collection_list_id',default='list_collection_%s'%patient.get('tel'))
+        LoginControl.updataPatientInfo(redis_connect,patient)
+
+# 检查病人当前是否有任务发布
+class QueryTaskHandler(tornado.web.RequestHandler):
+    def get(self, *args, **kwargs):
+        tel = args[0]
+        r = TaskControl.queryTask(redis_connect,patient_tel=tel)
+        self.write(r)
 
 # 测试服务器正常运行
 class IndexHandler(tornado.web.RequestHandler):
@@ -111,7 +134,7 @@ class HelpHandler(tornado.web.RequestHandler):
     def get(self):
         self.render('help.html')
 
-
+# 发送短信验证码
 class SendSmscodeHandler(tornado.web.RequestHandler):
     def get(self, *args):
         p2 = re.compile('^0\d{2,3}\d{7,8}$|^1[3587]\d{9}$|^147\d{8}')  # 电话号码匹配正则
@@ -138,10 +161,21 @@ class addTaskHandler(tornado.web.RequestHandler):
         detailTask['patient_age'] = self.get_argument('patient_age', )
         detailTask['doctor_tel'] = self.get_argument('doctor_tel', default='00000000000')
         detailTask['doctor_name'] = self.get_argument('doctor_name', default='无名氏')
+        detailTask['user_tel'] = self.get_argument('user_tel', default='朋友电话')
+        detailTask['user_addr'] = self.get_argument('user_addr', default='朋友地址')
         detailTask['task_timeout'] = self.get_argument('task_timeout', default='3600')
         detailTask['comment_id'] = self.get_argument('comment_id', default='1')
         r = TaskControl.addTask(redis_connect, detailTask)
         self.write(str(r))
+
+# 接受医生
+class AcceptDoctorHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        doctor_tel = self.get_argument('doctor_tel')
+        detailTask = {}
+        detailTask['id']=self.get_argument('id')
+        r= TaskControl.acceptDoctor(redis_connect,detailTask,doctor_tel)
+        self.write(r)
 
 
 # 查询所有任务接口
@@ -149,6 +183,31 @@ class queryAllTaskHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
         r = TaskControl.queryAllTask(redis_connect)
         self.write(r)
+
+
+# 接受任务接口
+class acceptTaskHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        detailTask = {}
+        detailTask['id'] = self.get_argument('id')
+        detailTask['task_timeout'] = self.get_argument('task_timeout')
+        detailTask['patient_tel'] = self.get_argument('patient_tel')
+        doctor_tel = self.get_argument('doctor_tel')
+        r = TaskControl.acceptTask(redis_connect, detailTask, doctor_tel)
+        self.write(str(r))
+
+
+class qiniuHandler(tornado.web.RequestHandler):
+    def get(self, *args, **kwargs):
+        self.write('this is qiniuHandler get')
+
+    def post(self, *args, **kwargs):
+        msg = self.get_argument('msg')
+        etag = self.get_argument('etag')
+        fname = self.get_argument('fname')
+        print 'callback msg = %s' % msg
+        print 'callback etag = %s' % etag
+        print 'callback fname = %s' % fname
 
 
 class OtherHandler(tornado.web.RequestHandler):
@@ -177,9 +236,14 @@ def startTornadoServer():
                                               (r'/testPost/', TestPostHandler),
                                               (r'/login/', LoginHandler),
                                               (r'/register/', RegisterHandler),
+                                              (r'/updataPatient/', UpdataPatientHandler),
                                               (r'/sendSmscode/tel=(.*)', SendSmscodeHandler),
+                                              (r'/queryTask/tel=(.*)', QueryTaskHandler),
                                               (r'/addTask/', addTaskHandler),
+                                              (r'/acceptTask/', acceptTaskHandler),
+                                              (r'/acceptDoctor/', AcceptDoctorHandler),
                                               (r'/queryAllTaskHandler/', queryAllTaskHandler),
+                                              (r'/qiniuUp/', qiniuHandler),
                                               (r'/.*', OtherHandler)
                                               ],
                                     template_path=os.path.join(os.path.dirname(__file__), 'templates'),
