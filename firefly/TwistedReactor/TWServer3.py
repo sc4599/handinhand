@@ -83,7 +83,7 @@ class TcpServerFactory(Factory):
 
     # 向所有医生发消息
     def sendToDoctors(self, data):
-        for c in self.doctors.values():
+        for c in self.doctorsKV.values():
             c.sendLine(data)
 
     def sendToDoctor(self, tel, data):
@@ -115,29 +115,35 @@ class Simple(resource.Resource):
     def render_POST(self, request):
         print '...this is render_POST !!!!'
         print (request.__dict__)
-        what = request.args.get('what')
+        what = request.args.get('what')[0]
+        print '...this is what = %s'%what
         if what == None:
             return '...Please specify the event type...(what ="addTask" or what = "acceptTask")'
         if what == 'addTask':
             # 发布任务
-            msg = request.args.get('data')
+            msg = request.args.get('data')[0]
+            print(msg)
             self.sendToAllDoctors(msg)
+            return '...succeed...addTask'
         elif what == 'acceptTask':
             # 医生接受任务
-            msg = request.args.get('data')
-            tel = request.args.get('tel')
+            msg = request.args.get('data')[0]
+            tel = request.args.get('tel')[0]
             tfactory.sendToPatient(tel, msg)
+            return '...succeed...acceptTask'
         elif what == 'acceptDoctor':
             # 病人选择医生
-            tel = request.args.get('tel')
+            tel = request.args.get('tel')[0]
             msg = 'accept'
             tfactory.sendToDoctor(tel,msg)
+            return '...succeed...acceptDoctor'
         elif what == 'unacceptDoctor':
             # 病人选择医生
-            tel = request.args.get('tel')
+            tel = request.args.get('tel')[0]
             msg = 'unaccept'
             tfactory.sendToDoctor(tel,msg)
-        return '...succeed...'
+            return '...succeed...unacceptDoctor'
+        return '...recived msg but unprocesse...'
 
     # 发送广播给医生
     def sendToAllDoctors(self, msg):
