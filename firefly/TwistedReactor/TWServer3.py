@@ -79,6 +79,7 @@ class TcpServerFactory(Factory):
     def addToPatient(self, tel, instance):
         self.patientsKV[tel] = instance
         self.patients[instance] = tel
+        print self.patientsKV
         print '...current patient counts = %d' % len(self.patients)
 
     # 向所有医生发消息
@@ -87,11 +88,14 @@ class TcpServerFactory(Factory):
             c.sendLine(data)
 
     def sendToDoctor(self, tel, data):
-        self.doctorsKV.get[tel].sendLine(data)
+        self.doctorsKV.get(tel).sendLine(data)
 
     def sendToPatient(self, tel, data):
-        self.patientsKV.get[tel].sendLine(data)
-
+        entity = self.patientsKV.get(tel)
+        if entity !=None :
+            self.patientsKV.get(tel).sendLine(data)
+        else:
+            return '200403' # 推送目标不在线
 
 # 将 factory公有， 让web服务器实现类调用
 tfactory = TcpServerFactory()
@@ -129,6 +133,7 @@ class Simple(resource.Resource):
             # 医生接受任务
             msg = request.args.get('data')[0]
             tel = request.args.get('tel')[0]
+            print msg,tel
             tfactory.sendToPatient(tel, msg)
             return '...succeed...acceptTask'
         elif what == 'acceptDoctor':
