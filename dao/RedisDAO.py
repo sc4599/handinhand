@@ -70,13 +70,18 @@ def redisSaveDoctor(redis_connect, doctor):
     r.hset(doctorid, 'pic', doctor.get('pic'))
     r.hset(doctorid, 'name', doctor.get('name'))
     r.hset(doctorid, 'gender', doctor.get('gender'))
+    r.hset(doctorid, 'colliction_count', doctor.get('colliction_count'))
     r.hset(doctorid, 'ndividual_resume', doctor.get('ndividual_resume'))
     r.hset(doctorid, 'adept', doctor.get('adept'))
-    r.hset(doctorid, 'colliction_count', doctor.get('colliction_count'))
+    r.hset(doctorid, 'comment_count', doctor.get('comment_count'))
+    r.hset(doctorid, 'grade', doctor.get('grade'))
     r.hset(doctorid, 'treatment_count', doctor.get('treatment_count'))
     r.hset(doctorid, 'qualification_pic', doctor.get('qualification_pic'))
     r.hset(doctorid, 'identification_pic', doctor.get('identification_pic'))
     r.hset(doctorid, 'hospital', doctor.get('hospital'))
+    r.hset(doctorid, 'current_task_count', doctor.get('current_task_count'))
+    # 密码单存一个表 hash_userInfo
+    r.hset('hash_userInfo','hash_doctor_%s'%doctor.get('tel'),doctor.get('password'))
     print 'redisSaveDoctor done'
     return '200200'
 
@@ -85,10 +90,10 @@ def redisSaveDoctor(redis_connect, doctor):
 def redisQueryPatientOrDoctorPWD(redis_connect, tel, userType):
 
     if userType == 'doctor':
-        r = redis_connect.hget('hash_doctor_%s' % tel, 'password')
+        r = redis_connect.hget('hash_userInfo' , 'hash_doctor_%s'%tel)
     else:
         if userType == 'patient':
-            r = redis_connect.hget('hash_patient_%s' % tel, 'password')
+            r = redis_connect.hget('hash_userInfo' , 'hash_patient_%s'%tel)
         else:
             return False
     return r
