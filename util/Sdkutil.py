@@ -42,10 +42,8 @@ class Umeng(object):
             print e.reason
 
 class Qiniu(object):
-    def __init__(self):
-        access_key = 'Q6OQ-uObfqSK65T-v9WuJTrQJIYigBkDdI5-wqJz'
-        secret_key = 'no-ZxV1TnVQ6ZJAqXr-tp0xoYOokcIE_g76weLjX'
-        self.bucket_name = 'qiniuspace'
+    def __init__(self,access_key,secret_key,bucket_name):
+        self.bucket_name = bucket_name
         self.q = Auth(access_key, secret_key)
 
     def getupToken(self):
@@ -53,10 +51,11 @@ class Qiniu(object):
 
         key = 'nihao'
         data = u'hello bubby!'
-        token = self.q.upload_token(self.bucket_name)
+        token = self.q.upload_token(self.bucket_name,)
         ret, info = put_data(token, key, data,)
         print 'getupToken info = ',info
         # assert ret['key'] == key
+        # token2 = self.q.upload_token(self.bucket_name, key, 7200, {'callbackUrl':"http://callback.do", 'callbackBody':"name=$(fname)&hash=$(etag)"})
         return token
 
     def upToken2(self):
@@ -69,22 +68,20 @@ class Qiniu(object):
 
     # 上传本地文件
     def uploaclFile(self):
-        localfile = __file__
+        filePath = 'D:\\qiupubin.jpg'
         key = 'test_file'
-        mime_type = "text/plain"
-        params = {'x:a': 'a'}
 
-        token = self.q.upload_token(self.bucket_name, key)
-        ret, info = put_file(token, key, localfile, mime_type=mime_type, check_crc=True)
+        token = self.q.upload_token(self.bucket_name, key,)
+        ret, info = put_file(token, key,filePath, check_crc=True)
         print(info)
         assert ret['key'] == key
-        assert ret['hash'] == etag(localfile)
         pass
 
 
 if __name__ == '__main__':
+    access_key = 'Q6OQ-uObfqSK65T-v9WuJTrQJIYigBkDdI5-wqJz'
+    secret_key = 'no-ZxV1TnVQ6ZJAqXr-tp0xoYOokcIE_g76weLjX'
+    bucket_name = 'handinhand'
+    q = Qiniu(access_key,secret_key,bucket_name)
     print ''
 
-    qiniu = Qiniu()
-    uptoken = qiniu.getupToken()
-    print(uptoken)

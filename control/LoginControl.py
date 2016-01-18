@@ -56,6 +56,9 @@ def registerPatientOrDoctor(redis_connect, entity, smscode, userType):
 def updataPatientInfo(redis_connect, patient):
     return RedisDAO.redisSavePatient(redis_connect, patient)
 
+def updataDoctorInfo(redis_connect, doctor):
+    return RedisDAO.redisSaveDoctor(redis_connect, doctor)
+
 def editPassword(redis_connect,userType,tel,password,smsCode):
     # 1.查看此用户是否注册过
     if RedisDAO.isExistsPatientOrDoctor(redis_connect, tel,userType):
@@ -75,6 +78,15 @@ def editPassword(redis_connect,userType,tel,password,smsCode):
 def getCurrentPatientInfo(redis_connect,tel):
     print '%s getCurrentPatientInfo'%tel
     r = redis_connect.hgetall('hash_patient_%s'%tel)
+    if r:
+        return json.dumps(r)
+    else:
+        return '200107' # 查无此用户
+
+# 获取当前用户信息
+def getCurrentDoctorInfo(redis_connect,tel):
+    print '%s getCurrentPatientInfo'%tel
+    r = redis_connect.hgetall('hash_doctor_%s'%tel)
     if r:
         return json.dumps(r)
     else:

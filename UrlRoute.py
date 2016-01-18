@@ -111,6 +111,27 @@ class UpdataPatientHandler(tornado.web.RequestHandler):
         r = LoginControl.updataPatientInfo(redis_connect, patient)
         self.write(r)
 
+# 更新医生基础信息
+class UpdataDoctorHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        doctor = {}
+        doctor['tel']=self.get_argument('tel')
+        doctor['age']=self.get_argument('age')
+        doctor['pic']=self.get_argument('pic')
+        doctor['name']=self.get_argument('name')
+        doctor['gender']=self.get_argument('gender')
+        doctor['ndividual_resume']=self.get_argument('ndividual_resume',default=None)
+        doctor['comment_count']=self.get_argument('comment_count',default=0)
+        doctor['grade']=self.get_argument('grade',default=4)
+        doctor['adept']=self.get_argument('adept',default=None)
+        doctor['treatment_count']=self.get_argument('treatment_count',default=0)
+        doctor['qualification_pic']=self.get_argument('qualification_pic',default=None)
+        doctor['identification_pic']=self.get_argument('identification_pic',default=None)
+        doctor['hospital']=self.get_argument('hospital',default=None)
+        doctor['current_task_count']=self.get_argument('current_task_count',default=0)
+        r = LoginControl.updataDoctorInfo(redis_connect, doctor)
+        self.write(r)
+
 # 修改密码
 class FindUserPassword(tornado.web.RequestHandler):
     def post(self, *args, **kwargs):
@@ -128,6 +149,13 @@ class PatientInfoHandler(tornado.web.RequestHandler):
         r = LoginControl.getCurrentPatientInfo(redis_connect, tel)
         self.write(r)
 
+# 获取当前用户基本信息
+class DoctorInfoHandler(tornado.web.RequestHandler):
+    def get(self, *args, **kwargs):
+        tel = args[0]
+        r = LoginControl.getCurrentDoctorInfo(redis_connect, tel)
+        self.write(r)
+
 
 # 检查病人当前是否有任务发布
 class QueryTaskHandler(tornado.web.RequestHandler):
@@ -136,6 +164,12 @@ class QueryTaskHandler(tornado.web.RequestHandler):
         r = TaskControl.queryTask(redis_connect, patient_tel=tel)
         self.write(r)
 
+# 根据电话 查询医生当前任务
+class QueryAcceptTaskByTelHandler(tornado.web.RequestHandler):
+    def get(self, *args, **kwargs):
+        tel = args[0]
+        r =TaskControl.queryAcceptTaskByTel(redis_connect,tel)
+        self.write(r)
 
 # 测试服务器正常运行
 class IndexHandler(tornado.web.RequestHandler):
@@ -254,6 +288,15 @@ class AcceptDoctorHandler(tornado.web.RequestHandler):
         self.write(r)
 
 
+# 病人删除响应医生
+class DeleteAcceptedDoctorHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        doctor_tel = self.get_argument('doctor_tel')
+        detailTask = {'id':self.get_argument('id')}
+        r = TaskControl.deleteAcceptedDoctor(redis_connect,detailTask,doctor_tel)
+        self.write(r)
+
+
 class qiniuHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
         self.write('this is qiniuHandler get')
@@ -296,6 +339,7 @@ def startTornadoServer():
                                               (r'/updataPatient/', UpdataPatientHandler),
                                               (r'/findUserPassword/', FindUserPassword),
                                               (r'/patientInfo/tel=(.*)', PatientInfoHandler),
+                                              (r'/doctorInfo/tel=(.*)', DoctorInfoHandler),
                                               (r'/sendSmscode/tel=(.*)', SendSmscodeHandler),
                                               (r'/addTask/', addTaskHandler),
                                               (r'/deleteTask/id=(.*)', DeleteTaskHandler),
@@ -304,7 +348,9 @@ def startTornadoServer():
                                               (r'/queryTaskDoctorsById/id=(.*)', QueryTaskDoctorsByIdHandler),
                                               (r'/acceptTask/', acceptTaskHandler),
                                               (r'/acceptDoctor/', AcceptDoctorHandler),
+                                              (r'/deleteAcceptedDoctor/', DeleteAcceptedDoctorHandler),
                                               (r'/queryAllTaskHandler/', queryAllTaskHandler),
+                                              (r'/queryAcceptTaskByTel/tel=(.*)', QueryAcceptTaskByTelHandler),
                                               (r'/qiniuUp/', qiniuHandler),
                                               (r'/.*', OtherHandler)
                                               ],
