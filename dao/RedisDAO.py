@@ -49,13 +49,14 @@ def redisSavePatient(redis_connect, patient):
     r = redis_connect
     patientid = "hash_patient_%s" % patient.get('tel')
     r.hset(patientid, 'tel', patient.get('tel'))
-    r.hset(patientid, 'password', patient.get('password'))
     r.hset(patientid, 'pic', patient.get('pic'))
     r.hset(patientid, 'name', patient.get('name'))
     r.hset(patientid, 'gender', patient.get('gender'))
     r.hset(patientid, 'age', patient.get('age'))
     r.hset(patientid, 'treatment_count', patient.get('treatment_count'))
     r.hset(patientid, 'colliction_list_id', patient.get('colliction_list_id'))
+    # 密码单存一个表 hash_userInfo
+    r.hset('hash_userInfo','hash_doctor_%s'%patient.get('tel'),patient.get('password'))
     print 'redisSavePatient done'
     return '200200'  # 数据写入成功
 
@@ -65,7 +66,6 @@ def redisSaveDoctor(redis_connect, doctor):
     r = redis_connect
     doctorid = "hash_doctor_%s" % doctor.get('tel')
     r.hset(doctorid, 'tel', doctor.get('tel'))
-    r.hset(doctorid, 'password', doctor.get('password'))
     r.hset(doctorid, 'age', doctor.get('age'))
     r.hset(doctorid, 'pic', doctor.get('pic'))
     r.hset(doctorid, 'name', doctor.get('name'))
