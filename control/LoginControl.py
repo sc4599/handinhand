@@ -3,10 +3,12 @@ from dao import MysqlDAO, RedisDAO
 import json
 import random
 
+debugtest = True
 
 # return True表示验证失败， False表示验证成功
 def authUser(redis_connect, username, password,userType):
-    print 'authUser ing.. current user is %s'%userType
+    if debugtest:
+        print 'authUser ing.. current user is %s'%userType
     r = RedisDAO.isExistsPatientOrDoctor(redis_connect, username,userType)
     if r=='200201':
         return '200201'# 提交的用户类型错误
@@ -34,12 +36,13 @@ def registerPatientOrDoctor(redis_connect, entity, smscode, userType):
     else:
         if authSmscode(redis_connect, tel, smscode):
             if userType == 'patient':
+                redis_connect.hset('hash_userInfo','hash_patient_%s'%tel,entity.get('password'))
                 rcode = RedisDAO.redisSavePatient(redis_connect, entity)
+            elif userType == 'doctor':
+                redis_connect.hset('hash_userInfo','hash_doctor_%s'%tel,entity.get('password'))
+                rcode = RedisDAO.redisSaveDoctor(redis_connect, entity)
             else:
-                if userType == 'doctor':
-                    rcode = RedisDAO.redisSaveDoctor(redis_connect, entity)
-                else:
-                    return '200201'  # 提交用户类型错误
+                return '200201'  # 提交用户类型错误
             if '200200' == rcode:
                 return '200102'  # 用户注册成功
             else:
@@ -53,15 +56,31 @@ def registerPatientOrDoctor(redis_connect, entity, smscode, userType):
 def updataPatientInfo(redis_connect, patient):
     return RedisDAO.redisSavePatient(redis_connect, patient)
 
+def editPassword(redis_connect,userType,tel,password,smsCode):
+    # 1.查看此用户是否注册过
+    if RedisDAO.isExistsPatientOrDoctor(redis_connect, tel,userType):
+        return '200101'  # 该用户已经存在
+    # 2.核对验证码是否正确
+    if authSmscode(redis_connect,tel,smsCode) == False:
+        return '200104' # 验证码错误
+    # 3.以上都没有问题   则修改密码
+    if userType == 'patient':
+        r=redis_connect.hset('hash_userInfo','hash_patient_%s'%tel,password)
+    elif userType == 'doctor':
+        r=redis_connect.hset('hash_userInfo','hash_doctor_%s'%tel,password)
+    return '10010' # 修改密码成功
+
+
 # 获取当前用户信息
 def getCurrentPatientInfo(redis_connect,tel):
+    print '%s getCurrentPatientInfo'%tel
     r = redis_connect.hgetall('hash_patient_%s'%tel)
     if r:
         return json.dumps(r)
     else:
         return '200107' # 查无此用户
 # 发送验证码
-def sendS0mscode(redis_connect, tel,remoteIP):
+def sendSmscode(redis_connect, tel,remoteIP):
     # todo 注意同一IP恶意刷短信
 
     # 同一号码 60秒内无法重复注册
