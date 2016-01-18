@@ -14,8 +14,7 @@ class TcpServerHandle(LineReceiver):
         print '...connectionMade self type=', type(self)
         self.sendLine('...welcome to china:')
         self.factory.clients.add(self)  # 新连接添加连接对应的Protocol实例到clients
-        if self in self.factory.doctors:
-            self.factory.doctors
+
 
     # 连接断开时候 执行
     def connectionLost(self, reason):
@@ -28,12 +27,12 @@ class TcpServerHandle(LineReceiver):
             tel = self.factory.doctors[self]
             del self.factory.doctors[self]
             del self.factory.doctorsKV[tel]
-            print 'doctor client removed'
+            print 'doctor %s client removed'%tel
         elif self in self.factory.patients.keys():
             tel = self.factory.patients[self]
             del self.factory.patients[self]
             del self.factory.patientsKV[tel]
-            print 'patient client removed'
+            print 'patient %s client removed'%tel
 
     # 接受消息时候出发此方法。
     # # @line 或得到的消息详细内容
@@ -88,12 +87,19 @@ class TcpServerFactory(Factory):
             c.sendLine(data)
 
     def sendToDoctor(self, tel, data):
-        self.doctorsKV.get(tel).sendLine(data)
-
+        print '...sendToDoctor tel=', tel
+        if tel in self.doctorsKV.keys():
+            self.doctorsKV.get(tel).sendLine(data)
+        else:
+            print 'current ',tel ,'not online'
     def sendToPatient(self, tel, data):
         entity = self.patientsKV.get(tel)
+        print '...',self.patientsKV.get(tel)
+        print '...',self.patients.get(self)
         if entity !=None :
+            print 'befor send data len = ',len(data)
             self.patientsKV.get(tel).sendLine(data)
+            return '10001'
         else:
             return '200403' # 推送目标不在线
 
@@ -134,20 +140,26 @@ class Simple(resource.Resource):
             msg = request.args.get('data')[0]
             tel = request.args.get('tel')[0]
             print '...this is render_POST acceptTask msg+tel =', msg,tel
-            tfactory.sendToPatient(tel, msg)
+            r = tfactory.sendToPatient(tel, msg)
+            print '...current push type r = ', r
             return '...succeed...acceptTask'
         elif what == 'acceptDoctor':
             # 病人选择医生
             tel = request.args.get('tel')[0]
-            msg = 'accept'
+            msg = request.args.get('data')[0]
             tfactory.sendToDoctor(tel,msg)
             return '...succeed...acceptDoctor'
         elif what == 'unacceptDoctor':
-            # 病人选择医生
+            # 病人未选择的医生
             tel = request.args.get('tel')[0]
-            msg = 'unaccept'
+            msg = request.args.get('data')[0]
             tfactory.sendToDoctor(tel,msg)
             return '...succeed...unacceptDoctor'
+        elif what == 'deleteAcceptedDoctor':
+            # 病人放弃治疗
+            tel = request.args.get('tel')[0]
+            msg = request.args.get('data')[0]
+            tfactory.sendToDoctor(tel,msg)
         return '...recived msg but unprocesse...'
 
     # 发送广播给医生
