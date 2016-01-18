@@ -111,6 +111,15 @@ class UpdataPatientHandler(tornado.web.RequestHandler):
         r = LoginControl.updataPatientInfo(redis_connect, patient)
         self.write(r)
 
+# 修改密码
+class FindUserPassword(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        userType = self.get_argument('userType')
+        tel = self.get_argument('tel')
+        password = self.get_argument('password')
+        smsCode = self.get_argument('smsCode')
+        r = LoginControl.editPassword(redis_connect,userType,tel,password,smsCode)
+        self.write(r)
 
 # 获取当前用户基本信息
 class PatientInfoHandler(tornado.web.RequestHandler):
@@ -180,6 +189,13 @@ class addTaskHandler(tornado.web.RequestHandler):
         self.write(str(r))
 
 
+class DeleteTaskHandler(tornado.web.RequestHandler):
+    def get(self, *args, **kwargs):
+        detailTaskID = args[0]
+        detailTask = dict({'id':detailTaskID})
+        r = TaskControl.delectTask(redis_connect,detailTask)
+        self.write(r)
+
 class EditTaskHandler(tornado.web.RequestHandler):
     def post(self, *args, **kwargs):
         detailTask = {}
@@ -209,6 +225,12 @@ class queryAllTaskHandler(tornado.web.RequestHandler):
         r = TaskControl.queryAllTask(redis_connect)
         self.write(r)
 
+# 根据ID 查任务的响应医生
+class QueryTaskDoctorsByIdHandler(tornado.web.RequestHandler):
+    def get(self, *args, **kwargs):
+        detailTaskID = args[0]
+        r = TaskControl.queryTaskDoctorsById(redis_connect,detailTaskID)
+        self.write(r)
 
 # 接受任务接口
 class acceptTaskHandler(tornado.web.RequestHandler):
@@ -272,12 +294,15 @@ def startTornadoServer():
                                               (r'/login/', LoginHandler),
                                               (r'/register/', RegisterHandler),
                                               (r'/updataPatient/', UpdataPatientHandler),
+                                              (r'/findUserPassword/', FindUserPassword),
                                               (r'/patientInfo/tel=(.*)', PatientInfoHandler),
                                               (r'/sendSmscode/tel=(.*)', SendSmscodeHandler),
-                                              (r'/queryTask/tel=(.*)', QueryTaskHandler),
                                               (r'/addTask/', addTaskHandler),
-                                              (r'/acceptTask/', acceptTaskHandler),
+                                              (r'/deleteTask/id=(.*)', DeleteTaskHandler),
                                               (r'/editTask/', EditTaskHandler),
+                                              (r'/queryTask/tel=(.*)', QueryTaskHandler),
+                                              (r'/queryTaskDoctorsById/id=(.*)', QueryTaskDoctorsByIdHandler),
+                                              (r'/acceptTask/', acceptTaskHandler),
                                               (r'/acceptDoctor/', AcceptDoctorHandler),
                                               (r'/queryAllTaskHandler/', queryAllTaskHandler),
                                               (r'/qiniuUp/', qiniuHandler),
