@@ -20,8 +20,35 @@
 
 -----------------------------------测试POST-----------------------------------------------<br/>
 <form id="testPost" action="http://192.168.1.124:9090/"  method="post">
-    URL<input id="toURL" value="http://192.168.1.124:9090/"/><input type="button" value="更换url" onclick="getAction()"/><br>
-    消息<input name="type" value="0"/><br>
+    URL<input id="toURL" value="http://192.168.1.124:9080/"/><input type="button" value="更换url" onclick="getAction()"/><br>
+    数据<input name="data" value="testMSG"/><br>
+    电话<input name="tel" value="15012822291"/><br>
+    <input name="what" value="addTask"/>
+    <input type="submit" >
+</form>
+
+-----------------------------------测试POST服务器推送单个病人-----------------------------------------------<br/>
+<form  action="http://192.168.1.124:9080/"  method="post">
+    URL<input  value="http://192.168.1.124:9080/"/><br>
+    数据<input name="data" value="testMSG"/><br>
+    病人电话<input name="tel" value="15012822291"/><br>
+    任务类型
+    <select name="what">
+        <option value="addTask">addTask</option>
+        <option value="acceptTask" selected="true">acceptTask</option>
+        <option value="acceptDoctor">acceptDoctor</option>
+        <option value="unacceptDoctor">unacceptDoctor</option>
+    </select><br>
+    <input type="submit" >
+</form>
+
+-----------------------------------测试接任务-----------------------------------------------<br/>
+<form  action="http://192.168.1.124:8002/acceptTask/"  method="post">
+    任务ID<input name="id" value="channel_hash_detailTask_15888271828_1452657111"/><br>
+    医生电话<input name="doctor_tel" value="18818684122"/><br>
+    病人电话<input name="patient_tel" value="15888271828"/><br>
+    超时时间<input name="task_timeout" value="1800"/><br>
+
     <input type="submit" >
 </form>
 -----------------------------------测试发布任务-----------------------------------------------<br/>
@@ -30,6 +57,19 @@
     为谁求医<input name="type" value="0"/><br>
     病人精度<input name="lat" value="22.154451"/><br>
     病人精度<input name="lon" value="116.788874"/><br>
+    病人电话<input name="patient_tel" value="13887083253"/><br>
+    病人名字<input name="patient_name" value="皮皮"/><br>
+    病人年龄<input name="patient_age" value="22"/><br>
+    病人性别<input name="patient_gender" value="男"/><br>
+    <input type="submit" >
+</form>
+
+-----------------------------------测试注册-----------------------------------------------<br/>
+<form action="http://192.168.1.124:8002/register/" method="post">
+    症状简介<input name="symptom" value="感冒"/><br>
+    为谁求医<input name="type" value="0"/><br>
+    病人纬度<input name="lat" value="22.154451"/><br>
+    病人经度<input name="lon" value="116.788874"/><br>
     病人电话<input name="patient_tel" value="13887083253"/><br>
     病人名字<input name="patient_name" value="皮皮"/><br>
     病人年龄<input name="patient_age" value="22"/><br>
