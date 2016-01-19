@@ -296,6 +296,24 @@ class DeleteAcceptedDoctorHandler(tornado.web.RequestHandler):
         r = TaskControl.deleteAcceptedDoctor(redis_connect,detailTask,doctor_tel)
         self.write(r)
 
+# 医生确定为病人看病
+class ConfirmTaskHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        detailTask = {}
+        detailTask['id']= self.get_argument('id')
+        detailTask['doctor_tel']= self.get_argument('doctor_tel')
+        detailTask['patient_tel']= self.get_argument('patient_tel')
+        r = TaskControl.confirmTask(redis_connect,detailTask)
+        self.write(r)
+
+# 医生取消此任务
+class CancelTaskHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        detailTask = {}
+        detailTask['id']= self.get_argument('id')
+        detailTask['patient_tel']= self.get_argument('patient_tel')
+        r =TaskControl.cancelTask(redis_connect,detailTask)
+        self.write(r)
 
 class qiniuHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
@@ -348,6 +366,8 @@ def startTornadoServer():
                                               (r'/queryTaskDoctorsById/id=(.*)', QueryTaskDoctorsByIdHandler),
                                               (r'/acceptTask/', acceptTaskHandler),
                                               (r'/acceptDoctor/', AcceptDoctorHandler),
+                                              (r'/confirmTask/', ConfirmTaskHandler),
+                                              (r'/cancelTask/', CancelTaskHandler),
                                               (r'/deleteAcceptedDoctor/', DeleteAcceptedDoctorHandler),
                                               (r'/queryAllTaskHandler/', queryAllTaskHandler),
                                               (r'/queryAcceptTaskByTel/tel=(.*)', QueryAcceptTaskByTelHandler),
