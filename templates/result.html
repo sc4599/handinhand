@@ -135,34 +135,86 @@
             </tr>
             <tr>
                 <td>&nbsp;</td>
-                <td class="url">30001</td>
-                <td class="text">有医生接受你的任务</td>
+                <td class="url">10015</td>
+                <td class="text">任务过期时间暂停成功</td>
+                <td class="url">112</td>
             </tr>
             <tr>
                 <td>&nbsp;</td>
-                <td class="url">30002</td>
-                <td class="text">病人选择您为他治疗</td>
+                <td class="url">10016</td>
+                <td class="text">任务过期时间恢复成功</td>
+                <td class="url">112</td>
             </tr>
             <tr>
                 <td>&nbsp;</td>
-                <td class="url">10020</td>
-                <td class="text">接口维护</td>
-                <td class="url">120</td>
+                <td class="url">100102</td>
+                <td class="text">发布私信成功</td>
+                <td class="url">112</td>
             </tr>
             <tr>
                 <td>&nbsp;</td>
-                <td class="url">10021</td>
-                <td class="text">接口停用</td>
-                <td class="url">121</td>
+                <td class="url">100103</td>
+                <td class="text">取消私信成功</td>
+                <td class="url">112</td>
             </tr>
             <tr>
                 <td>&nbsp;</td>
-                <td class="url">10011</td>
-                <td class="text">当前IP请求超过限制</td>
-                <td class="url">111</td>
+                <td class="url">100104</td>
+                <td class="text">接受私信成功</td>
+                <td class="url">112</td>
             </tr>
-
+            <tr>
+                <td>&nbsp;</td>
+                <td class="url">100105</td>
+                <td class="text">确定私信成功</td>
+                <td class="url">112</td>
+            </tr>
         </table>
+        <div class="fullsimpleline"><strong>Socket服务器响应码</strong></div>
+        <div class="fullsimplearea">
+            <table>
+                <tr>
+                    <td class="url">30000</td>
+                    <td class="text">医生们有新任务了</td>
+                </tr>
+                <tr>
+                    <td class="url">30001</td>
+                    <td class="text">医生响应您的任务</td>
+                </tr>
+                <tr>
+                    <td class="url">30002</td>
+                    <td class="text">病人选择您为他治疗</td>
+                </tr>
+                <tr>
+                    <td class="url">30003</td>
+                    <td class="text">病人没有选择您为他的看病</td>
+                </tr>
+                <tr>
+                    <td class="url">30004</td>
+                    <td class="text">病人放弃了您对他的治疗</td>
+                </tr>
+                <tr>
+                    <td class="url">30005</td>
+                    <td class="text">医生确定任务成功</td>
+                </tr>
+                <tr>
+                    <td class="url">30006</td>
+                    <td class="text">医生放弃了对您的治疗</td>
+                </tr>
+                <tr>
+                    <td class="url">30101</td>
+                    <td class="text">有人给你发了私信</td>
+                </tr>
+                <tr>
+                    <td class="url">30102</td>
+                    <td class="text">医生接受了你的私信</td>
+                </tr>
+                <tr>
+                    <td class="url">30103</td>
+                    <td class="text">通知病人，医生最终接受了你的私信</td>
+                </tr>
+            </table>
+        </div>
     </div>
 
 
@@ -178,7 +230,7 @@
             <tr>
                 <td>&nbsp;</td>
                 <td class="url">200101</td>
-                <td class="text">该用户已经存在</td>
+                <td class="text">该用户不存在</td>
                 <!--<td class="url"></td>-->
             </tr>
             <tr>
@@ -215,6 +267,18 @@
                 <td>&nbsp;</td>
                 <td class="url">200107</td>
                 <td class="text">查无此用户</td>
+                <!--<td class="url"></td>-->
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td class="url">200108</td>
+                <td class="text">该用户已存在</td>
+                <!--<td class="url"></td>-->
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td class="url">200109</td>
+                <td class="text">电话号码错误</td>
                 <!--<td class="url"></td>-->
             </tr>
             <tr>
@@ -316,13 +380,25 @@
             <tr>
                 <td>&nbsp;</td>
                 <td class="url">200310</td>
-                <td class="text">  请勿重复接受</td>
+                <td class="text"> 请勿重复接受</td>
                 <!--<td class="url"></td>-->
             </tr>
             <tr>
                 <td>&nbsp;</td>
                 <td class="url">200311</td>
                 <td class="text"> 暂时未接去任何任务</td>
+                <!--<td class="url"></td>-->
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td class="url">200312</td>
+                <td class="text"> 当前任务已经有医生接单无法删除</td>
+                <!--<td class="url"></td>-->
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td class="url">200313</td>
+                <td class="text"> 你处于任务黑名单中，无法再次接受此任务</td>
                 <!--<td class="url"></td>-->
             </tr>
             <tr>
@@ -345,8 +421,38 @@
             </tr>
             <tr>
                 <td>&nbsp;</td>
-                <td class="url">200703</td>
-                <td class="text">无结果了</td>
+                <td class="url">200404</td>
+                <td class="text">通过 id 更改医生电话失败</td>
+                <!--<td class="url"></td>-->
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td class="url">200501</td>
+                <td class="text">请选择是'Pause' 还是 'Resume'</td>
+                <!--<td class="url"></td>-->
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td class="url">200601</td>
+                <td class="text">您的私信数量达到10条，请待处理后再发信的私信</td>
+                <!--<td class="url"></td>-->
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td class="url">200602</td>
+                <td class="text">您已经给当前医生发过私信，请等待处理后重新发送</td>
+                <!--<td class="url"></td>-->
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td class="url">200603</td>
+                <td class="text">没有这样的私信</td>
+                <!--<td class="url"></td>-->
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+                <td class="url">200604</td>
+                <td class="text">发送私信医生不存在</td>
                 <!--<td class="url"></td>-->
             </tr>
             <tr>

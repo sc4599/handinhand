@@ -15,16 +15,16 @@ class UserOnLineControl(object):
         print 'current pushTask req =', req
         response = urllib2.urlopen(req)
         res = response.read()
-
         return json.loads(res)
 
     def getDoctorsOnlineEntity(self):
-
         doctors = self.getDoctorsOnline()
-        print doctors
+        print type(doctors)
+
         doctorsEntity = []
         for i in doctors:
             s= self.redis_connect.hgetall('hash_doctor_%s'%i)
+            s.pop('current_task_count')
             doctorsEntity.append(s)
         return json.dumps(doctorsEntity)
 
@@ -36,3 +36,8 @@ if __name__ == '__main__':
     c = UserOnLineControl(url,rc)
     r = c.getDoctorsOnlineEntity()
     print r
+
+    d = []
+
+    print d.remove()
+    print d

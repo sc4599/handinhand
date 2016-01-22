@@ -5,16 +5,17 @@ import random
 
 debugtest = True
 
+
 # return True表示验证失败， False表示验证成功
-def authUser(redis_connect, username, password,userType):
+def authUser(redis_connect, username, password, userType):
     if debugtest:
-        print 'authUser ing.. current user is %s'%userType
-    r = RedisDAO.isExistsPatientOrDoctor(redis_connect, username,userType)
-    if r=='200201':
-        return '200201'# 提交的用户类型错误
-    if r :
-        pwd = RedisDAO.redisQueryPatientOrDoctorPWD(redis_connect,username,userType)
-        print u'当前密码 ： %s'% pwd
+        print 'authUser ing.. current user is %s' % userType
+    r = RedisDAO.isExistsPatientOrDoctor(redis_connect, username, userType)
+    if r == '200201':
+        return '200201'  # 提交的用户类型错误
+    if r:
+        pwd = RedisDAO.redisQueryPatientOrDoctorPWD(redis_connect, username, userType)
+        print u'当前密码 ： %s' % pwd
         if password == pwd:
             return '200202'  # 登录成功
         else:
@@ -30,16 +31,16 @@ def authUser(redis_connect, username, password,userType):
 # 返回值 L{templates/result.html}
 def registerPatientOrDoctor(redis_connect, entity, smscode, userType):
     tel = entity.get('tel')
-    r = RedisDAO.isExistsPatientOrDoctor(redis_connect, tel,userType)
+    r = RedisDAO.isExistsPatientOrDoctor(redis_connect, tel, userType)
     if r:
-        return '200101'  # 该用户已经存在
+        return '200108'  # 该用户已经存在
     else:
         if authSmscode(redis_connect, tel, smscode):
             if userType == 'patient':
-                redis_connect.hset('hash_userInfo','hash_patient_%s'%tel,entity.get('password'))
+                redis_connect.hset('hash_userInfo', 'hash_patient_%s' % tel, entity.get('password'))
                 rcode = RedisDAO.redisSavePatient(redis_connect, entity)
             elif userType == 'doctor':
-                redis_connect.hset('hash_userInfo','hash_doctor_%s'%tel,entity.get('password'))
+                redis_connect.hset('hash_userInfo', 'hash_doctor_%s' % tel, entity.get('password'))
                 rcode = RedisDAO.redisSaveDoctor(redis_connect, entity)
             else:
                 return '200201'  # 提交用户类型错误
@@ -56,48 +57,59 @@ def registerPatientOrDoctor(redis_connect, entity, smscode, userType):
 def updataPatientInfo(redis_connect, patient):
     return RedisDAO.redisSavePatient(redis_connect, patient)
 
+
 def updataDoctorInfo(redis_connect, doctor):
     return RedisDAO.redisSaveDoctor(redis_connect, doctor)
 
-def editPassword(redis_connect,userType,tel,password,smsCode):
+
+def editPassword(redis_connect, userType, tel, password, smsCode):
     # 1.查看此用户是否注册过
-    if RedisDAO.isExistsPatientOrDoctor(redis_connect, tel,userType):
-        return '200101'  # 该用户已经存在
+    if RedisDAO.isExistsPatientOrDoctor(redis_connect, tel, userType)==False:
+        return '200101'  # 该用户不存在
     # 2.核对验证码是否正确
-    if authSmscode(redis_connect,tel,smsCode) == False:
-        return '200104' # 验证码错误
+    if authSmscode(redis_connect, tel, smsCode) == False:
+        return '200104'  # 验证码错误
     # 3.以上都没有问题   则修改密码
     if userType == 'patient':
-        r=redis_connect.hset('hash_userInfo','hash_patient_%s'%tel,password)
+        r = redis_connect.hset('hash_userInfo', 'hash_patient_%s' % tel, password)
     elif userType == 'doctor':
-        r=redis_connect.hset('hash_userInfo','hash_doctor_%s'%tel,password)
-    return '10010' # 修改密码成功
+        r = redis_connect.hset('hash_userInfo', 'hash_doctor_%s' % tel, password)
+    return '10010'  # 修改密码成功
 
 
 # 获取当前用户信息
-def getCurrentPatientInfo(redis_connect,tel):
-    print '%s getCurrentPatientInfo'%tel
-    r = redis_connect.hgetall('hash_patient_%s'%tel)
-    if r:
-        return json.dumps(r)
-    else:
-        return '200107' # 查无此用户
+def getCurrentPatientInfo(redis_connect, tel):
+    print '%s getCurrentPatientInfo' % tel
+    if redis_connect.hgetall('hash_patient_%s' % tel) == False:
+        return '200107'
+    r = {}
+    r['tel'] = redis_connect.hget('hash_patient_%s' % tel, 'tel')
+    r['name'] = redis_connect.hget('hash_patient_%s' % tel, 'name')
+    r['age'] = redis_connect.hget('hash_patient_%s' % tel, 'age')
+    r['gender'] = redis_connect.hget('hash_patient_%s' % tel, 'gender')
+    r['pic'] = redis_connect.hget('hash_patient_%s' % tel, 'pic')
+    r['treatment_count'] = redis_connect.hget('hash_patient_%s' % tel, 'treatment_count')
+    r['colliction_list_id'] = redis_connect.hget('hash_patient_%s' % tel, 'colliction_list_id')
+    return json.dumps(r)
+
 
 # 获取当前用户信息
-def getCurrentDoctorInfo(redis_connect,tel):
-    print '%s getCurrentPatientInfo'%tel
-    r = redis_connect.hgetall('hash_doctor_%s'%tel)
+def getCurrentDoctorInfo(redis_connect, tel):
+    print '%s getCurrentPatientInfo' % tel
+    r = redis_connect.hgetall('hash_doctor_%s' % tel)
     if r:
         return json.dumps(r)
     else:
-        return '200107' # 查无此用户
+        return '200107'  # 查无此用户
+
+
 # 发送验证码
-def sendSmscode(redis_connect, tel,remoteIP):
+def sendSmscode(redis_connect, tel, remoteIP):
     # todo 注意同一IP恶意刷短信
 
     # 同一号码 60秒内无法重复注册
     if redis_connect.exists('smscode_%s' % tel):
-        return '200105' # 验证码已发送，请稍候
+        return '200105'  # 验证码已发送，请稍候
 
     smscode = int(random.uniform(1000, 9999))
     redis_connect.set('smscode_%s' % tel, smscode, ex=60)  # 将短信验证码写入 redis

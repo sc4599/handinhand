@@ -3,7 +3,8 @@ from twisted.web import server, resource, static
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import Factory
 from twisted.internet import reactor
-
+import time
+import json
 
 class TcpServerHandle(LineReceiver):
     def __init__(self, factory):
@@ -25,7 +26,10 @@ class TcpServerHandle(LineReceiver):
         if self in self.factory.doctors.keys():
             tel = self.factory.doctors[self]
             del self.factory.doctors[self]
-            del self.factory.doctorsKV[tel]
+            if tel in self.factory.doctorsKV.keys():
+                del self.factory.doctorsKV[tel]
+            else:
+                print '...%s is not in doctorKV at :'%tel,time.ctime(time.time())
             print 'doctor %s client removed' % tel
         elif self in self.factory.patients.keys():
             tel = self.factory.patients[self]
@@ -91,7 +95,7 @@ class TcpServerFactory(Factory):
             self.doctorsKV.get(tel).sendLine(data)
             return '10001'
         else:
-            print '..current ', tel, 'not online'
+            print '..current doctor', tel, 'not online'
             return '200403'  # 推送目标不在线
 
     def sendToPatient(self, tel, data):
@@ -103,7 +107,7 @@ class TcpServerFactory(Factory):
             self.patientsKV.get(tel).sendLine(data)
             return '10001'
         else:
-            print '..current ', tel, 'not online'
+            print '..current patient', tel, 'not online'
             return '200403'  # 推送目标不在线
 
 
@@ -120,10 +124,20 @@ class Simple(resource.Resource):
     # 获取get请求
     def render_GET(self, request):
         print '...this is render_GET !!!!'
-        print (request.__dict__)
+        # print (request.__dict__)
         doctors = len(tfactory.doctors)
         patients = len(tfactory.patients)
-        return "...current online doctors =%d,patients =%d" % (doctors, patients)
+        lpatients = ''
+        ldoctors = ''
+        for i in tfactory.doctorsKV.keys():
+            ldoctors = ldoctors+str(i)+','
+            print ldoctors
+        for i in tfactory.patientsKV.keys():
+            lpatients=lpatients+str(i)+','
+        j1 = json.dumps(ldoctors)
+        j2 = json.dumps(lpatients)
+        return "...current online<br> doctors =%d<br>%s<br> patients = %d<br>%s<br>"%(doctors,j1,patients,j2)
+        # return "...current online<br> doctors =%d<br>"%doctors,ldoctors,",patients =%d<br>" %  patients,lpatients
 
     # 获取post请求
     def render_POST(self, request):
@@ -134,8 +148,7 @@ class Simple(resource.Resource):
             return '...Please specify the event type...(what ="addTask" or what = "acceptTask")'
         if what == 'addTask':
             # 发布任务
-            # msg = request.args.get('data')[0]
-            msg = '10012'  # 有新任务发布了
+            msg = request.args.get('data')[0]
             print 'this is render_GET msg = ', msg
             self.sendToAllDoctors(msg)
             return '...succeed...addTask'
@@ -166,10 +179,18 @@ class Simple(resource.Resource):
             r = tfactory.sendToDoctor(tel, msg)
             return r  # '...succeed...deleteAcceptedDoctor'
         elif what == 'confirmTask':
-            # 病人放弃治疗
+            # 医生确定治疗
+
             tel = request.args.get('tel')[0]
             msg = request.args.get('data')[0]
-            r = tfactory.sendToDoctor(tel, msg)
+            print '...this is render_POST confirmTask msg+tel =', msg, tel
+            r = tfactory.sendToPatient(tel, msg)
+            return r  # '...succeed...deleteAcceptedDoctor'
+        elif what == 'cancelTask':
+            # 医生取消为此病人治疗
+            tel = request.args.get('tel')[0]
+            msg = request.args.get('data')[0]
+            r = tfactory.sendToPatient(tel, msg)
             return r  # '...succeed...deleteAcceptedDoctor'
         return '...recived msg but unprocesse...'
 
@@ -177,6 +198,25 @@ class Simple(resource.Resource):
     def sendToAllDoctors(self, msg):
         tfactory.sendToDoctors(msg)
 
+    # 添加子路径
+    def getChild(self, path, request):
+        return ChildSimple(path)
+
+class ChildSimple(resource.Resource):
+    isLeaf = True
+    def __init__(self, type):
+        self.type = type
+
+    def render_GET(self, request):
+        if self.type == 'doctors':
+            print '...', self.type,'query current onlien docotr'
+            ldoctors = []
+            for i in tfactory.doctorsKV.keys():
+                ldoctors.append(i)
+
+            return json.dumps(ldoctors)
+        elif self.type == 'patients':
+            return 'current online patients = 10'
 
 class TCPserverContorl(object):
     def __init__(self, httpPORT=9080, tcpPORT=9081):

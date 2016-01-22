@@ -12,6 +12,10 @@ from util.Util import Config
 import socket
 import sys
 from control import TaskControl, LoginControl
+# 私信控制
+from control.PrivateLetterTaskControl import PrivateLetterControl
+# 用户控制
+from control.UserControl import UserOnLineControl
 # 测试数据
 
 localIP = socket.gethostbyname(socket.gethostname())  # 这个得到本地ip
@@ -31,9 +35,11 @@ if redis_connect == 'connect failed':
 ipList = socket.gethostbyname_ex(socket.gethostname())
 
 
-# for i in ipList:
-#     if i != localIP:
-#         print "external IP:%s" % i
+# 初始化 私信控制器
+privateLetterControl = PrivateLetterControl(redis_connect)
+# 初始化 用户控制器
+getonlineURL= 'http://%s:%s/doctors'%(c.httpIP,c.httpPORT)
+userControl = UserOnLineControl(getonlineURL ,redis_connect)
 
 
 class TestPostHandler(tornado.web.RequestHandler):
@@ -197,7 +203,7 @@ class SendSmscodeHandler(tornado.web.RequestHandler):
                 args[0], self.request.remote_ip)
             r = LoginControl.sendSmscode(redis_connect, args[0], self.request.remote_ip)  # 获取远程客户端IP
         else:
-            r = '200105'  # 电话号码有误
+            r = '200109'  # 电话号码有误
         self.write(r)
 
 
@@ -213,6 +219,7 @@ class addTaskHandler(tornado.web.RequestHandler):
         detailTask['patient_name'] = self.get_argument('patient_name', )
         detailTask['patient_gender'] = self.get_argument('patient_gender', )
         detailTask['patient_age'] = self.get_argument('patient_age', )
+        detailTask['blacklist'] = self.get_argument('blacklist', default=None)
         detailTask['doctor_tel'] = self.get_argument('doctor_tel', default='00000000000')
         detailTask['doctor_name'] = self.get_argument('doctor_name', default='无名氏')
         detailTask['user_tel'] = self.get_argument('user_tel', default='朋友电话')
@@ -266,6 +273,14 @@ class QueryTaskDoctorsByIdHandler(tornado.web.RequestHandler):
         r = TaskControl.queryTaskDoctorsById(redis_connect,detailTaskID)
         self.write(r)
 
+# 根据任务ID 查询任务详细
+class QueryTaskInfoById(tornado.web.RequestHandler):
+    def get(self, *args, **kwargs):
+        detailTaskID = args[0]
+        r = TaskControl.queryTaskInfoById(redis_connect,detailTaskID)
+        self.write(r)
+
+
 # 接受任务接口
 class acceptTaskHandler(tornado.web.RequestHandler):
     def post(self, *args, **kwargs):
@@ -276,6 +291,19 @@ class acceptTaskHandler(tornado.web.RequestHandler):
         doctor_tel = self.get_argument('doctor_tel')
         r = TaskControl.acceptTask(redis_connect, detailTask, doctor_tel)
         self.write(str(r))
+
+# 暂停和恢复任务过期时间接口
+class PauseOrResumeTaskTimeHandler(tornado.web.RequestHandler):
+    def get(self, *args, **kwargs):
+        what = args[0]
+        detailTaskID = args[1]
+        if what =='Pause':
+            r = TaskControl.pauseTaskTime(redis_connect,detailTaskID)
+        elif what == 'Resume':
+            r = TaskControl.resumeTaskTime(redis_connect,detailTaskID)
+        else:
+            r = '200501'
+        self.write(r)
 
 
 # 接受医生
@@ -315,6 +343,72 @@ class CancelTaskHandler(tornado.web.RequestHandler):
         r =TaskControl.cancelTask(redis_connect,detailTask)
         self.write(r)
 
+# 发送私信
+class SendPrivateLetterHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        doctor_tel = self.get_argument('doctor_tel')
+        detailTask = {}
+        detailTask['symptom'] = self.get_argument('symptom')
+        detailTask['type'] = self.get_argument('type', default='0')
+        detailTask['datetime'] = self.get_argument('datetime', default=str(int(time.time())))
+        detailTask['lat'] = self.get_argument('lat')
+        detailTask['lon'] = self.get_argument('lon')
+        detailTask['patient_tel'] = self.get_argument('patient_tel', )
+        detailTask['patient_name'] = self.get_argument('patient_name', )
+        detailTask['patient_gender'] = self.get_argument('patient_gender', )
+        detailTask['patient_age'] = self.get_argument('patient_age', )
+        detailTask['blacklist'] = self.get_argument('blacklist', default=None)
+        detailTask['doctor_tel'] = self.get_argument('doctor_tel', default='00000000000')
+        detailTask['doctor_name'] = self.get_argument('doctor_name', default='无名氏')
+        detailTask['user_tel'] = self.get_argument('user_tel', default='朋友电话')
+        detailTask['user_addr'] = self.get_argument('user_addr', default='朋友地址')
+        detailTask['task_timeout'] = self.get_argument('task_timeout', default='3600')
+        detailTask['comment_id'] = self.get_argument('comment_id', default='1')
+        r = privateLetterControl.sendPrivateLetter(detailTask,doctor_tel)
+        self.write(r)
+
+# 医生接受私信
+class AcceptPrivateLetterHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        detailTask = {}
+        detailTask['id'] = self.get_argument('id')
+        detailTask['patient_tel'] = self.get_argument('patient_tel')
+        doctor_tel = self.get_argument('doctor_tel')
+        r = privateLetterControl.acceptPrivateLetter(detailTask,doctor_tel)
+        self.write(r)
+
+# 医生确定接受私信为病人治疗
+class ConfirmPrivateLetterHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        detailTask = {}
+        detailTask['id'] = self.get_argument('id')
+        detailTask['patient_tel'] = self.get_argument('patient_tel')
+        detailTask['doctor_tel'] = self.get_argument('doctor_tel')
+        r = privateLetterControl.confirmPrivateLetter(detailTask)
+        self.write(r)
+
+# 医生取消私信
+class CancelTaskPrivateLetterHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        detailTask = {}
+        detailTask['id'] = self.get_argument('id')
+        detailTask['patient_tel'] = self.get_argument('patient_tel')
+        r = privateLetterControl.cancelTaskPrivateLetter(detailTask)
+        self.write(r)
+
+# 医生 或 病人 请求自己私信列表
+class QueryDoctorPrivateLetterList(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        userType = self.get_argument('userType')
+        tel = self.get_argument('tel')
+        if userType == 'doctor':
+            r = privateLetterControl.queryDoctorPrivateLetterList(tel)
+        elif userType == 'patient':
+            r = privateLetterControl.queryPatientPrivateLetterList(tel)
+        else:
+            r = 'plase confirm userType "doctor"or"patient"'
+        self.write(r)
+
 class qiniuHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
         self.write('this is qiniuHandler get')
@@ -327,6 +421,9 @@ class qiniuHandler(tornado.web.RequestHandler):
         print 'callback etag = %s' % etag
         print 'callback fname = %s' % fname
 
+class GetDoctorIfonlineHandler(tornado.web.RequestHandler):
+    def get(self, *args, **kwargs):
+        self.write(userControl.getDoctorsOnlineEntity())
 
 class OtherHandler(tornado.web.RequestHandler):
     print 'this is  OtherHandler'
@@ -355,6 +452,7 @@ def startTornadoServer():
                                               (r'/login/', LoginHandler),
                                               (r'/register/', RegisterHandler),
                                               (r'/updataPatient/', UpdataPatientHandler),
+                                              (r'/updataDoctor/', UpdataDoctorHandler),
                                               (r'/findUserPassword/', FindUserPassword),
                                               (r'/patientInfo/tel=(.*)', PatientInfoHandler),
                                               (r'/doctorInfo/tel=(.*)', DoctorInfoHandler),
@@ -364,14 +462,21 @@ def startTornadoServer():
                                               (r'/editTask/', EditTaskHandler),
                                               (r'/queryTask/tel=(.*)', QueryTaskHandler),
                                               (r'/queryTaskDoctorsById/id=(.*)', QueryTaskDoctorsByIdHandler),
+                                              (r'/queryTaskInfoById/id=(.*)', QueryTaskInfoById),
                                               (r'/acceptTask/', acceptTaskHandler),
+                                              (r'/pauseOrResumeTaskTime/', PauseOrResumeTaskTimeHandler),
                                               (r'/acceptDoctor/', AcceptDoctorHandler),
                                               (r'/confirmTask/', ConfirmTaskHandler),
                                               (r'/cancelTask/', CancelTaskHandler),
                                               (r'/deleteAcceptedDoctor/', DeleteAcceptedDoctorHandler),
                                               (r'/queryAllTaskHandler/', queryAllTaskHandler),
                                               (r'/queryAcceptTaskByTel/tel=(.*)', QueryAcceptTaskByTelHandler),
+                                              (r'/sendPrivateLetter/', SendPrivateLetterHandler),
+                                              (r'/acceptPrivateLetter/', AcceptPrivateLetterHandler),
+                                              (r'/confirmPrivateLetter/', ConfirmPrivateLetterHandler),
+                                              (r'/cancelTaskPrivateLetter/', CancelTaskPrivateLetterHandler),
                                               (r'/qiniuUp/', qiniuHandler),
+                                              (r'/getDoctorIfonline/', GetDoctorIfonlineHandler),
                                               (r'/.*', OtherHandler)
                                               ],
                                     template_path=os.path.join(os.path.dirname(__file__), 'templates'),

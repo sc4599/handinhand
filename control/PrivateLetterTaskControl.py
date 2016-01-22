@@ -13,15 +13,20 @@ class PrivateLetterControl(object):
     # 病人发送私信
     def sendPrivateLetter(self,detailTask,doctor_tel):
         # 0.判断病人私信条数是否大于=10
-        privateLetterCount = self.redis_connect.keys('private_hash_detailTask_%s_*'%detailTask.get('patient_tel'))
+        privateLetterCount = len(self.redis_connect.keys('private_hash_detailTask_%s_*'%detailTask.get('patient_tel')))
+        print 'this is sendPrivateLetter privateLetterCount=',privateLetterCount
         if privateLetterCount>10:
             return '200601'# 您的私信数量达到10条，请待处理后再发信的私信
 
         # 1.生成私信hash_privateLetter_tel 哈希表
         detailTask['id'] = 'private_hash_detailTask_%s_%s' % (detailTask.get('patient_tel'), int(time.time()))
-        self.redis_connect.hmset(detailTask)
+        self.redis_connect.hmset(detailTask.get('id'),detailTask)
         # 2.医生私信记录增加私信id
-        privateLetterListjson = self.redis_connect.hget('hash_docotor_%s'%doctor_tel,'private_letter_list')
+        print 'this is sendPrivateLetter doctor_tel=',doctor_tel
+        print
+        if self.redis_connect.exists('hash_doctor_%s'%doctor_tel)==False:
+            return '200604' # 发送私信医生不存在
+        privateLetterListjson = self.redis_connect.hget('hash_doctor_%s'%doctor_tel,'private_letter_list')
         if privateLetterListjson == None or privateLetterListjson =='None':
             privateLetterList=[]
         else:
@@ -31,13 +36,13 @@ class PrivateLetterControl(object):
             if detailTask.get('id') in privateLetterTels:
                 return '200602' # 您已经给当前医生发过私信，请等待处理后重新发送
         privateLetterList.append(detailTask.get('id'))
-        self.redis_connect.hset('hash_docotor_%s'%doctor_tel,'private_letter_list',json.dumps(privateLetterList))
+        self.redis_connect.hset('hash_doctor_%s'%doctor_tel,'private_letter_list',json.dumps(privateLetterList))
 
         # 3.通知医生有信给你
         r =pushTask(what='sendPrivateLetter',doctor_tel=doctor_tel,channelTaskID=detailTask.get('id'))
         if r !='10001':
             return r
-        return '10102 ' # 私信发送成功
+        return '100102 ' # 私信发送成功
 
     # 医生接受私信
     def acceptPrivateLetter(self,detailTask,doctor_tel):
@@ -51,7 +56,7 @@ class PrivateLetterControl(object):
         # 3.下一步等待电话或主动联系（等ing）
 
         # 4.医生私信列表添加当前私信ID
-        return '10104'# 接受私信成功
+        return '100104'# 接受私信成功
 
     # 医生确定接受私信为病人治疗
     def confirmPrivateLetter(self,detailTask):
@@ -74,7 +79,7 @@ class PrivateLetterControl(object):
         r = pushTask('confirmPrivateLetter',patient_tel=detailTask.get('patient_tel'),channelTaskID=detailTask.get('id'))
         if r != '10001':
             return r
-        return '10105' # 确定私信成功
+        return '100105' # 确定私信成功
 
     # 医生取消私信，拒绝病人此次请求
     def cancelTaskPrivateLetter(self,detailTask):
@@ -86,14 +91,14 @@ class PrivateLetterControl(object):
         r =pushTask('cancelTaskPrivateLetter',patient_tel=detailTask.get('patient_tel'),channelTaskID=detailTask.get('id'))
         if r != '10001':
             return r
-        return '10103' # 取消私信成功
+        return '100103' # 取消私信成功
 
 
     # 医生请求自己的私信列表
     # @doctor_tel 医生电话
     # @return 当前医生所有私信实例列表
     def queryDoctorPrivateLetterList(self,doctor_tel):
-        privateLetterListjson = self.redis_connect.hget('hash_docotor_%s'%doctor_tel,'private_letter_list')
+        privateLetterListjson = self.redis_connect.hget('hash_doctor_%s'%doctor_tel,'private_letter_list')
         if privateLetterListjson == None or privateLetterListjson =='None':
             privateLetterList=[]
         else:

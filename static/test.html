@@ -77,5 +77,23 @@
     <input type="submit" >
 </form>
 
+-----------------------------------测试服务器推送-----------------------------------------------<br/>
+<form action="http://192.168.1.124:9080/" method="post">
+    what<input name="what" value='confirmTask'/><br>
+    tel<input name="tel" value='15888271828'/><br>
+    data<input name="data" value='{"resultCode":"30005"}'/><br>
+
+    <input type="submit" >
+</form>
+
+-----------------------------------测试confirmTask-----------------------------------------------<br/>
+<form action="http://192.168.1.124:9080/" method="post">
+    what<input name="id" value='confirmTask'/><br>
+    tel<input name="doctor_tel" value='15888271828'/><br>
+    data<input name="patient_tel" value='{"resultCode":"30005"}'/><br>
+
+    <input type="submit" >
+</form>
+
 </body>
 </html>

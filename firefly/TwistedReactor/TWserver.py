@@ -35,8 +35,9 @@ class TcpServerHandle(LineOnlyReceiver):
         elif line.startswith('patient:::'):
             tel = line.split(':::')[1]
             print '...I am patient add to patients tel = %s' % tel
-            self.factory.addToPatient(tel,self)
+            self.factory.addToPatient(tel, self)
         self.sendLine('succeed')
+
 
 # tcp服务器工厂， 添加方法，供所有协议调用
 class TcpServerFactory(Factory):
@@ -61,6 +62,7 @@ class TcpServerFactory(Factory):
         for c in self.doctors.values():
             c.sendLine(data)
 
+
 # 将 factory公有， 让web服务器实现类调用
 tfactory = TcpServerFactory()
 
@@ -69,16 +71,19 @@ class ChildSimple(resource.Resource):
     isLeaf = True
 
     def __init__(self, msg):
-        resource.Resource.__init__(self)
+        # resource.Resource.__init__(self)
         self.msg = msg
+        self.count = 0
 
     def render_GET(self, request):
-        self.sendToAll(self.msg)
-        # return "...Hello, No. %s visitor1!" % self.msg
-        return '...succeed...'
+        print '...', self.msg
+        if self.msg == 'doctors':
 
-    def sendToAll(self, msg):
-        tfactory.sendToDoctors(msg)
+            return 'current online doctors = 22'
+        elif self.msg == 'patients':
+            return 'current online patients = 10'
+
+
 
 # http 请求处理类
 class Simple(resource.Resource):
@@ -92,7 +97,8 @@ class Simple(resource.Resource):
         print request
         # self.sendToAll('hello tcp')
         return "...Hello, world!"
-    def render_POST(self,request):
+
+    def render_POST(self, request):
         print '...this is render_POST !!!!'
         print (request.__dict__)
         msg = request.content.getvalue().split('=')[1]
@@ -101,15 +107,15 @@ class Simple(resource.Resource):
         print request.args.get('tel')[0]
         self.sendToAll(msg)
         return '...ok...'
+
     def getChild(self, path, request):
         return ChildSimple(path)
 
-    def sendToAll(self, msg):
-        tfactory.sendToDoctors(msg)
+
 
 
 class TCPserverContorl(object):
-    def __init__(self, httpPORT = 9090, tcpPORT = 9091):
+    def __init__(self, httpPORT=9090, tcpPORT=9091):
         print '...TCPserver listen %d for http...' % httpPORT
         print '...TCPserver listen %d for tcp...' % tcpPORT
         reactor.listenTCP(httpPORT, server.Site(Simple()))
