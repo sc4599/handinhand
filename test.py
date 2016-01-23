@@ -13,6 +13,6 @@ l  = ['private_hash_detailTask_13887083253','private_hash_detailTask_13887083254
 l2 = [i[-11:] for  i in l]
 
 r = rc.keys('channel*')
-rc.delete()
-rc.exists()
-print r
+d  = {'a':1}
+print 'b' in d
+# print d.pop('b')

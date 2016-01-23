@@ -143,27 +143,32 @@ def pushTask(what, doctor_tel=None, patient_tel=None, channelTaskID=None, name =
         if patient_tel == None:
             return '200402'
         data = {'resultCode': 30006,
-                'msg': {'patient_tel': patient_tel, 'patient_tel': patient_tel, 'channelTaskID': channelTaskID,'name':name}}
+                'msg': {'patient_tel': patient_tel, 'doctor_tel': doctor_tel, 'channelTaskID': channelTaskID,'name':name}}
         values = {'what': what, 'tel': patient_tel, 'data': json.dumps(data)}  # 医生放弃了对您的治疗
     elif what == 'sendPrivateLetter':
         if doctor_tel == None:
             return '200402'
         data = {'resultCode': 30101,
-                'msg': {'patient_tel': patient_tel, 'patient_tel': patient_tel, 'channelTaskID': channelTaskID,'name':name}}
-        values = {'what': what, 'tel': patient_tel, 'data': json.dumps(data)}  # 有人给你发了私信
+                'msg': {'patient_tel': patient_tel, 'doctor_tel': doctor_tel, 'channelTaskID': channelTaskID,'name':name}}
+        values = {'what': what, 'tel': doctor_tel, 'data': json.dumps(data)}  # 有人给你发了私信
     elif what == 'acceptPrivateLetter':
         if patient_tel == None:
             return '200402'
         data = {'resultCode': 30102,
-                'msg': {'patient_tel': patient_tel, 'patient_tel': patient_tel, 'channelTaskID': channelTaskID,'name':name}}
+                'msg': {'patient_tel': patient_tel, 'doctor_tel': doctor_tel, 'channelTaskID': channelTaskID,'name':name}}
         values = {'what': what, 'tel': patient_tel, 'data': json.dumps(data)}  # 医生接受私信
     elif what == 'confirmPrivateLetter':
         if patient_tel == None:
             return '200402'
         data = {'resultCode': 30103,
-                'msg': {'patient_tel': patient_tel, 'patient_tel': patient_tel, 'channelTaskID': channelTaskID,'name':name}}
+                'msg': {'patient_tel': patient_tel, 'doctor_tel': doctor_tel, 'channelTaskID': channelTaskID,'name':name}}
         values = {'what': what, 'tel': patient_tel, 'data': json.dumps(data)}  # 通知病人，医生最终接受了你的私信
-
+    elif what == 'cancelTaskPrivateLetter':
+        if patient_tel == None:
+            return '200402'
+        data = {'resultCode': 30104,
+                'msg': {'patient_tel': patient_tel, 'doctor_tel': doctor_tel, 'channelTaskID': channelTaskID,'name':name}}
+        values = {'what': what, 'tel': patient_tel, 'data': json.dumps(data)}  # 通知病人，医生最取消了你的私信
     post_data = urllib.urlencode(values)
     req = urllib2.Request(url, data=post_data)
     print 'current pushTask req =',req
@@ -183,7 +188,10 @@ def pushTask(what, doctor_tel=None, patient_tel=None, channelTaskID=None, name =
 def acceptTask(redis_connect, detailTask, doctor_tel, ):
     # 0 判断任务黑名单是否有自己
     rbl= redis_connect.hget(detailTask.get('id'),'blacklist')
-    blacklist = json.loads(rbl)
+    if rbl == 'None' or rbl == None:
+        blacklist = []
+    else:
+        blacklist = json.loads(rbl)
     if 'hash_doctor_%s'%doctor_tel in blacklist:
         return '200313' # 你当前处于任务黑名单内
 
@@ -303,9 +311,21 @@ def confirmTask(redis_connect, detailTask):
     detailTaskID = detailTask.get('id')[8:]
     pip.hmset(detailTaskID, task)
     # 2.医生行医记录里添加详细任务id（Treatment_count）
-    pip.hset('hash_doctor_%s' % detailTask.get('doctor_tel'), 'treatment_count', detailTaskID)
+    r = redis_connect.hget('hash_doctor_%s'%detailTask.get('doctor_tel'),'treatment_count')
+    if r =='None' or r == None:
+        treatments = []
+    else:
+        treatments = json.loads(r)
+    treatments.append(detailTaskID)
+    pip.hset('hash_doctor_%s' % detailTask.get('doctor_tel'), 'treatment_count', json.dumps(treatments))
     # 3.病人就医记录里添加详细任务id（medical_history）
-    pip.hset('hash_patient_%s' % detailTask.get('patient_tel'), 'medical_history', detailTaskID)
+    r = redis_connect.hget('hash_patient_%s'%detailTask.get('patient_tel'),'medical_history')
+    if r =='None' or r == None:
+        medicalHistorys = []
+    else:
+        medicalHistorys  = json.loads(r)
+    medicalHistorys.append(detailTaskID)
+    pip.hset('hash_patient_%s' % detailTask.get('patient_tel'), 'medical_history', json.dumps(medicalHistorys))
     # 4.通知病人，医生接受了你的任务
     print 'currnet confirmTask patient_tel =',detailTask.get('patient_tel')
     r = pushTask( what='confirmTask',patient_tel=detailTask.get('patient_tel'),

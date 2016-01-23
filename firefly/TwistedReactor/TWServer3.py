@@ -192,6 +192,32 @@ class Simple(resource.Resource):
             msg = request.args.get('data')[0]
             r = tfactory.sendToPatient(tel, msg)
             return r  # '...succeed...deleteAcceptedDoctor'
+        elif what == 'sendPrivateLetter':
+            # 发送私信给医生
+            tel = request.args.get('tel')[0]
+            print '...this is render_POST tel = ',tel
+            msg = request.args.get('data')[0]
+            r = tfactory.sendToDoctor(tel, msg)
+            print '...sendPrivateLetter!!!!!!!!!!!!!!!!!!!!!'
+            return r  # '...succeed...deleteAcceptedDoctor'
+        elif what == 'acceptPrivateLetter':
+            # 医生取消为此病人治疗
+            tel = request.args.get('tel')[0]
+            msg = request.args.get('data')[0]
+            r = tfactory.sendToPatient(tel, msg)
+            return r  # '...succeed...deleteAcceptedDoctor'
+        elif what == 'confirmPrivateLetter':
+            # 医生取消为此病人治疗
+            tel = request.args.get('tel')[0]
+            msg = request.args.get('data')[0]
+            r = tfactory.sendToPatient(tel, msg)
+            return r  # '...succeed...deleteAcceptedDoctor'
+        elif what == 'cancelTaskPrivateLetter':
+            # 医生取消为此病人治疗
+            tel = request.args.get('tel')[0]
+            msg = request.args.get('data')[0]
+            r = tfactory.sendToPatient(tel, msg)
+            return r  # '...succeed...deleteAcceptedDoctor'
         return '...recived msg but unprocesse...'
 
     # 发送广播给医生

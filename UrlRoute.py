@@ -358,7 +358,7 @@ class SendPrivateLetterHandler(tornado.web.RequestHandler):
         detailTask['patient_gender'] = self.get_argument('patient_gender', )
         detailTask['patient_age'] = self.get_argument('patient_age', )
         detailTask['blacklist'] = self.get_argument('blacklist', default=None)
-        detailTask['doctor_tel'] = self.get_argument('doctor_tel', default='00000000000')
+        detailTask['doctor_tel'] ='00000000000'
         detailTask['doctor_name'] = self.get_argument('doctor_name', default='无名氏')
         detailTask['user_tel'] = self.get_argument('user_tel', default='朋友电话')
         detailTask['user_addr'] = self.get_argument('user_addr', default='朋友地址')
@@ -382,6 +382,7 @@ class ConfirmPrivateLetterHandler(tornado.web.RequestHandler):
     def post(self, *args, **kwargs):
         detailTask = {}
         detailTask['id'] = self.get_argument('id')
+        print self.get_argument('id')
         detailTask['patient_tel'] = self.get_argument('patient_tel')
         detailTask['doctor_tel'] = self.get_argument('doctor_tel')
         r = privateLetterControl.confirmPrivateLetter(detailTask)
@@ -390,18 +391,20 @@ class ConfirmPrivateLetterHandler(tornado.web.RequestHandler):
 # 医生取消私信
 class CancelTaskPrivateLetterHandler(tornado.web.RequestHandler):
     def post(self, *args, **kwargs):
+        doctor_tel = self.get_argument('doctor_tel')
         detailTask = {}
         detailTask['id'] = self.get_argument('id')
         detailTask['patient_tel'] = self.get_argument('patient_tel')
-        r = privateLetterControl.cancelTaskPrivateLetter(detailTask)
+        r = privateLetterControl.cancelTaskPrivateLetter(detailTask,doctor_tel)
         self.write(r)
 
 # 医生 或 病人 请求自己私信列表
-class QueryDoctorPrivateLetterList(tornado.web.RequestHandler):
+class QueryDoctorPrivateLetterListHandler(tornado.web.RequestHandler):
     def post(self, *args, **kwargs):
         userType = self.get_argument('userType')
         tel = self.get_argument('tel')
         if userType == 'doctor':
+            print 'this is QueryDoctorPrivateLetterListHandler tel=',tel
             r = privateLetterControl.queryDoctorPrivateLetterList(tel)
         elif userType == 'patient':
             r = privateLetterControl.queryPatientPrivateLetterList(tel)
@@ -475,6 +478,7 @@ def startTornadoServer():
                                               (r'/acceptPrivateLetter/', AcceptPrivateLetterHandler),
                                               (r'/confirmPrivateLetter/', ConfirmPrivateLetterHandler),
                                               (r'/cancelTaskPrivateLetter/', CancelTaskPrivateLetterHandler),
+                                              (r'/queryDoctorPrivateLetterList/', QueryDoctorPrivateLetterListHandler),
                                               (r'/qiniuUp/', qiniuHandler),
                                               (r'/getDoctorIfonline/', GetDoctorIfonlineHandler),
                                               (r'/.*', OtherHandler)

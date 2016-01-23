@@ -62,17 +62,29 @@ class PrivateLetterControl(object):
     def confirmPrivateLetter(self,detailTask):
         # 1.私信哈希表，生成任务记录（hash_detailTask_tel)哈希表
         privateLetterTask = self.redis_connect.hgetall(detailTask.get('id'))
+        print 'this is confirmPrivateLetter privateLetterTask=',privateLetterTask
         self.redis_connect.hmset(detailTask.get('id')[8:],privateLetterTask)
         # 2.病人私信记录删除此私信ID
         self.redis_connect.delete(detailTask.get('id'))
+        # 2.1 医生私信记录删除此私信ID
+        privateLetterList = json.loads(self.redis_connect.hget('hash_doctor_%s'%detailTask.get('doctor_tel'),'private_letter_list'))
+        if detailTask.get('id') in privateLetterList:
+            privateLetterList.remove(detailTask.get('id'))
+        self.redis_connect.hset('hash_doctor_%s'%detailTask.get('doctor_tel'),'private_letter_list',json.dumps(privateLetterList))
         # 3.医生行医记录里追加此任务id（Treatment_count）
-        r = self.redis_connect.hget('hash_doctor_%s'%detailTask.get('doctor_tel'),'Treatment_count')
-        treatments = json.loads(r)
+        r = self.redis_connect.hget('hash_doctor_%s'%detailTask.get('doctor_tel'),'treatment_count')
+        if r =='None' or r == None:
+            treatments = []
+        else:
+            treatments = json.loads(r)
         treatments.append(detailTask.get('id')[8:])
-        self.redis_connect.hset('hash_doctor_%s'%detailTask.get('doctor_tel'),'Treatment_count',json.dumps(treatments))
+        self.redis_connect.hset('hash_doctor_%s'%detailTask.get('doctor_tel'),'treatment_count',json.dumps(treatments))
         # 4.病人就医记录里添加详细任务id（medical_history）
         r = self.redis_connect.hget('hash_patient_%s'%detailTask.get('patient_tel'),'medical_history')
-        medicalHistorys  = json.loads(r)
+        if r =='None' or r == None:
+            medicalHistorys = []
+        else:
+            medicalHistorys  = json.loads(r)
         medicalHistorys.append(detailTask.get('id')[8:])
         self.redis_connect.hset('hash_patient_%s'%detailTask.get('patient_tel'),'medical_history',json.dumps(medicalHistorys))
         # 5.通知病人医生最终确定了你的私信
@@ -82,15 +94,24 @@ class PrivateLetterControl(object):
         return '100105' # 确定私信成功
 
     # 医生取消私信，拒绝病人此次请求
-    def cancelTaskPrivateLetter(self,detailTask):
-        # 2.删除私信哈希表
-        r = self.redis_connect.delete(detailTask.get('id'))
-        if r != 1:
-            return '' # 无当前任务ID
+    def cancelTaskPrivateLetter(self,detailTask,doctor_tel):
+
         # 1.通知病人医生拒绝了你的私信
         r =pushTask('cancelTaskPrivateLetter',patient_tel=detailTask.get('patient_tel'),channelTaskID=detailTask.get('id'))
         if r != '10001':
             return r
+        # 3.医生私信列表删除此私信ID
+        privateLetterList = json.loads(self.redis_connect.hget('hash_doctor_%s'%doctor_tel,'private_letter_list'))
+        print 'this is cancelTaskPrivateLetter privateLetterList =',privateLetterList
+        print 'this is cancelTaskPrivateLetter detailTask.get(id) in privateLetterList =',detailTask.get('id') in privateLetterList
+        if detailTask.get('id') in privateLetterList:
+            privateLetterList.remove(detailTask.get('id'))
+        print 'this is cancelTaskPrivateLetter privateLetterList =',privateLetterList
+        self.redis_connect.hset('hash_doctor_%s'%doctor_tel,'private_letter_list',json.dumps(privateLetterList))
+        # 2.删除私信哈希表
+        r = self.redis_connect.delete(detailTask.get('id'))
+        if r != 1:
+            return '' # 无当前任务ID
         return '100103' # 取消私信成功
 
 
@@ -99,6 +120,7 @@ class PrivateLetterControl(object):
     # @return 当前医生所有私信实例列表
     def queryDoctorPrivateLetterList(self,doctor_tel):
         privateLetterListjson = self.redis_connect.hget('hash_doctor_%s'%doctor_tel,'private_letter_list')
+        print privateLetterListjson
         if privateLetterListjson == None or privateLetterListjson =='None':
             privateLetterList=[]
         else:

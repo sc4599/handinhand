@@ -22,9 +22,13 @@ class UserOnLineControl(object):
         print type(doctors)
 
         doctorsEntity = []
+        print doctors
         for i in doctors:
             s= self.redis_connect.hgetall('hash_doctor_%s'%i)
-            s.pop('current_task_count')
+            if 'current_task_count'in s :
+                s.pop('current_task_count')
+            if 'private_letter_list' in s:
+                s.pop('private_letter_list')
             doctorsEntity.append(s)
         return json.dumps(doctorsEntity)
 
