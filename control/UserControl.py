@@ -31,6 +31,8 @@ class UserOnLineControl(object):
                 s.pop('current_task_count')
             if 'private_letter_list' in s:
                 s.pop('private_letter_list')
+            if 'treatment_count' in s:
+                s.pop('treatment_count')
             doctorsEntity.append(s)
         return json.dumps(doctorsEntity)
 
@@ -41,9 +43,9 @@ class UserOnLineControl(object):
         for key in alldoctorsKEY:
             entity = self.redis_connect.hgetall(key)
             if 'location' in entity:
-                lat_b = float(json.loads(entity.get('location'))[0])
-                lng_b = float(json.loads(entity.get('location'))[1])
-
+                print entity.get('location').split(' ')
+                lat_b = float(entity.get('location').split(' ')[0])
+                lng_b = float(entity.get('location').split(' ')[1])
                 print 'lat_b = %s lng_b = %s '%(lat_b,lng_b)
                 if self.baiduDistance.distanceFilter(radius, lat_a, lng_a, lat_b, lng_b):
                     alldoctorsEntitys.append(entity)
@@ -55,4 +57,7 @@ if __name__ == '__main__':
     url = 'http://192.168.1.124:9080/doctors'
     c = UserOnLineControl(url, rc)
     r = c.getDoctorBydistance(3000, 22.54186, 113.958915)
+    # lo = ['22.54375','113.955578']
+    # rc.hset('hash_doctor_18818684122','location',lo)
+    # print json.dumps(rc.hgetall('hash_doctor_18818684122'))
     print r

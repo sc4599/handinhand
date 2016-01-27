@@ -7,7 +7,7 @@ globalsR = None
 
 def connect(redisIP=None, post=6379, db=0, password='songchao'):
     print(u'准备连接redis。。。IP = %s' % redisIP)
-    redis_connect = redis.StrictRedis(host=redisIP, port=post, db=db, password='songchao', charset='utf-8',
+    redis_connect = redis.StrictRedis(host=redisIP, port=post, db=db, password=password, charset='utf-8',
                                       decode_responses=True)
     print redis_connect
     print(u'开始连接redis。。。')
@@ -28,6 +28,7 @@ def saveDetailTask(redis_connect, detailTask):
     print u'储存完毕'
     return '200200'  # 数据写入成功
 
+
 # 查询当前频道所有任务
 # return json 格式的所有任务
 def queryChannelTask(redis_connect):
@@ -38,11 +39,13 @@ def queryChannelTask(redis_connect):
         l.append(rh)
     return json.dumps(l)
 
+
 # 根据医生电话查询医生详细信息
 # return json格式 的医生实体信息
-def queryDoctorByTel(redis_connect,tel):
-    r = redis_connect.keys('hash_doctor_%s'%tel)
+def queryDoctorByTel(redis_connect, tel):
+    r = redis_connect.keys('hash_doctor_%s' % tel)
     return json.dumps(r)
+
 
 # 储存病人资料到redis中
 def redisSavePatient(redis_connect, patient):
@@ -56,7 +59,7 @@ def redisSavePatient(redis_connect, patient):
     r.hset(patientid, 'treatment_count', patient.get('treatment_count'))
     r.hset(patientid, 'colliction_list_id', patient.get('colliction_list_id'))
     # 密码单存一个表 hash_userInfo
-    r.hset('hash_userInfo','hash_doctor_%s'%patient.get('tel'),patient.get('password'))
+    # r.hset('hash_userInfo', patientid, patient.get('password'))
     print 'redisSavePatient done'
     return '200200'  # 数据写入成功
 
@@ -81,21 +84,19 @@ def redisSaveDoctor(redis_connect, doctor):
     r.hset(doctorid, 'hospital', doctor.get('hospital'))
     r.hset(doctorid, 'current_task_count', doctor.get('current_task_count'))
     # 密码单存一个表 hash_userInfo
-    r.hset('hash_userInfo','hash_doctor_%s'%doctor.get('tel'),doctor.get('password'))
+    # r.hset('hash_userInfo', doctorid, doctor.get('password'))
     print 'redisSaveDoctor done'
     return '200200'
 
 
 # 查询redis 中存在病人或医生的密码
 def redisQueryPatientOrDoctorPWD(redis_connect, tel, userType):
-
     if userType == 'doctor':
-        r = redis_connect.hget('hash_userInfo' , 'hash_doctor_%s'%tel)
+        r = redis_connect.hget('hash_userInfo', 'hash_doctor_%s' % tel)
+    elif userType == 'patient':
+        r = redis_connect.hget('hash_userInfo', 'hash_patient_%s' % tel)
     else:
-        if userType == 'patient':
-            r = redis_connect.hget('hash_userInfo' , 'hash_patient_%s'%tel)
-        else:
-            return False
+        return False
     return r
 
 
@@ -103,15 +104,12 @@ def redisQueryPatientOrDoctorPWD(redis_connect, tel, userType):
 def isExistsPatientOrDoctor(redis_connect, tel, userType):
     if userType == 'doctor':
         r = redis_connect.exists('hash_doctor_%s' % tel)
+    elif userType == 'patient':
+        r = redis_connect.exists('hash_patient_%s' % tel)
     else:
-        if userType == 'patient':
-            r = redis_connect.exists('hash_patient_%s' % tel)
-        else:
-            return '200201'
+        return '200201'
     return r
 
 
 if __name__ == "__main__":
     redis_connect = connect('192.168.1.18')
-
-

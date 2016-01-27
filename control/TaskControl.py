@@ -12,6 +12,7 @@ import urllib2, urllib
 # @detailTask  任务实体，字典格式
 # return 返回当前频道接受到任务的人数
 def addTask(redis_connect, detailTask):
+    print 'this is addTask current tel =',detailTask.get('patient_tel')
     key = 'channel_hash_detailTask_%s*' % detailTask.get('patient_tel')
     if redis_connect.keys(key):
         return '200303'  # 同一个人同时只能发布一个任务
@@ -77,6 +78,8 @@ def queryTaskDoctorsById(redis_connect, detailTaskID):
             doctor.pop('password')
         if 'current_task_count' in doctor:
             doctor.pop('current_task_count')
+        if 'private_letter_list' in doctor:
+            doctor.pop('private_letter_list')
         doctors.append(doctor)
     if doctors:
         return json.dumps(doctors)
@@ -107,7 +110,6 @@ def pushTask(what, doctor_tel=None, patient_tel=None, channelTaskID=None, name =
     elif what == 'acceptTask':
         if doctor_tel == None or patient_tel == None:
             return '200402'  # 必须传递医生和病人电话号码
-
         data = {'resultCode': 30001,
                 'msg': {'patient_tel': patient_tel, 'doctor_tel': doctor_tel, 'channelTaskID': channelTaskID,'name':name}}
         values = {'what': what, 'tel': patient_tel, 'data': json.dumps(data)}  # 医生响应您的任务
@@ -186,6 +188,7 @@ def pushTask(what, doctor_tel=None, patient_tel=None, channelTaskID=None, name =
 # @detailTask 任务实体，字典格式(必须具备id，task_timeout默认30分)
 # @doctor_tel 医生电话
 def acceptTask(redis_connect, detailTask, doctor_tel, ):
+    print 'this is acceptTask doctor_tel = ',doctor_tel
     # 0 判断任务黑名单是否有自己
     rbl= redis_connect.hget(detailTask.get('id'),'blacklist')
     if rbl == 'None' or rbl == None:
@@ -212,10 +215,12 @@ def acceptTask(redis_connect, detailTask, doctor_tel, ):
     rtask = redis_connect.hget('hash_doctor_%s' % doctor_tel, 'current_task_count')
     # print u'判断医生当前已接受任务列表 rtask',rtask
     # print u'判断医生当前已接受任务列表 rtask == None',rtask == None
-    if rtask == 'None' or rtask == None:
+    if rtask == 'None' or rtask == None or rtask == '0' :
         task_list = []
     else:
         task_list = json.loads(rtask)
+    print 'this is acceptTask rtask! =',rtask == 'None' or rtask == None
+    print 'this is acceptTask id =',detailTask.get('id') , task_list
     if detailTask.get('id') in task_list:
         return '200310'  # 请勿重复接受
     current_doctor_tasks = len(task_list)
@@ -279,13 +284,15 @@ def acceptDoctor(redis_connect, detailTask, doctor_tel):
 
 # 病人删除接受任务医生
 def deleteAcceptedDoctor(redis_connect, detailTask, doctor_tel):
+    print 'this is deleteAcceptedDoctor doctor_tel = ',doctor_tel
     # 1.从该任务的响应医生列表中，删除当前医生
     pip = redis_connect.pipeline()
     r = pip.lrem('list_%s_doctors' % detailTask.get('id'), 1, 'hash_doctor_%s' % doctor_tel)
     # if r != 1:
     #     return '200308'  # 医生已经被删除请勿重复提交
     # 2.通知当前医生，病人放弃了您对他的治疗
-    r = pushTask( 'deleteAcceptedDoctor', doctor_tel, channelTaskID=detailTask.get('id'),name=detailTask.get('patient_name'))
+    name = redis_connect.hget(detailTask.get('id'),'patient_name')
+    r = pushTask( 'deleteAcceptedDoctor', doctor_tel, channelTaskID=detailTask.get('id'),name=name)
     print 'deleteAcceptedDoctor pushTask r =', r
     if r != '10001':
         return '200401'  # 推送异常
@@ -357,10 +364,22 @@ def confirmTask(redis_connect, detailTask):
 
 # 医生取消为病人治疗
 def cancelTask(redis_connect, detailTask):
+    print 'this is cancelTask id =',detailTask.get('id')
+    # 获取任务中医生电话
+    doctor_tel = redis_connect.hget(detailTask.get('id'),'doctor_tel')
+    # 1.2 删除医生 当前任务列表'current_task_count' 中当前任务
+    r = redis_connect.hget('hash_doctor_%s'%doctor_tel,'current_task_count')
+    print 'this is cancelTask doctor_tel =',doctor_tel
+    print 'this is cancelTask r =',r
+    currentTask = json.loads(redis_connect.hget('hash_doctor_%s'%doctor_tel,'current_task_count'))
+    currentTask.remove(detailTask.get('id'))
+    redis_connect.hset('hash_doctor_%s'%doctor_tel,'current_task_count',json.dumps(currentTask))
+    # 1.3 从当前 响应医生列表 'list_' 中删除自己
+    redis_connect.lrem('list_%s_doctors' % detailTask.get('id'),1,'hash_doctor_%s'%doctor_tel)
     # 1,在当前频道任务中删除当前医生电话
-    r = redis_connect.hset(detailTask.get('id'), 'doctor_tel', '00000000000')
-    if r !=1 :
-        return '' # 通过 id 更改医生电话失败
+    if redis_connect.exists(detailTask.get('id'))==False:
+        return '200315' # 任务已经过期，下次请及时处理
+    redis_connect.hset(detailTask.get('id'), 'doctor_tel', '00000000000')
     # 2.通知病人，医生取消了对你的治疗
     r = pushTask( what='cancelTask', patient_tel=detailTask.get('patient_tel'),
              channelTaskID=detailTask.get('id'))
@@ -371,6 +390,7 @@ def cancelTask(redis_connect, detailTask):
 
 # 查询所有任务
 def queryAllTask(redis_connect):
+    print 'this is queryAllTask ing...'
     return RedisDAO.queryChannelTask(redis_connect)
 
 

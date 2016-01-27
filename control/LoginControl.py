@@ -24,7 +24,7 @@ def authUser(redis_connect, username, password, userType):
         return '200204'  # 用户不存在
 
 
-# 注册病人
+# 注册病人或医生
 # patient 病人实体 dict
 # smscode 短信验证码
 # userType 用户类型，判断是医生注册还是病人注册
@@ -34,23 +34,22 @@ def registerPatientOrDoctor(redis_connect, entity, smscode, userType):
     r = RedisDAO.isExistsPatientOrDoctor(redis_connect, tel, userType)
     if r:
         return '200108'  # 该用户已经存在
-    else:
-        if authSmscode(redis_connect, tel, smscode):
-            if userType == 'patient':
-                redis_connect.hset('hash_userInfo', 'hash_patient_%s' % tel, entity.get('password'))
-                rcode = RedisDAO.redisSavePatient(redis_connect, entity)
-            elif userType == 'doctor':
-                redis_connect.hset('hash_userInfo', 'hash_doctor_%s' % tel, entity.get('password'))
-                rcode = RedisDAO.redisSaveDoctor(redis_connect, entity)
-            else:
-                return '200201'  # 提交用户类型错误
-            if '200200' == rcode:
-                return '200102'  # 用户注册成功
-            else:
-                print 'rcode = %s' % rcode
-                return '200103'  # 用户注册失败
+    if authSmscode(redis_connect, tel, smscode):
+        if userType == 'patient':
+            redis_connect.hset('hash_userInfo', 'hash_patient_%s' % tel, entity.get('password'))
+            rcode = RedisDAO.redisSavePatient(redis_connect, entity)
+        elif userType == 'doctor':
+            redis_connect.hset('hash_userInfo', 'hash_doctor_%s' % tel, entity.get('password'))
+            rcode = RedisDAO.redisSaveDoctor(redis_connect, entity)
         else:
-            return '200104'  # 短信验证码错误
+            return '200201'  # 提交用户类型错误
+        if '200200' == rcode:
+            return '200102'  # 用户注册成功
+        else:
+            print 'rcode = %s' % rcode
+            return '200103'  # 用户注册失败
+    else:
+        return '200104'  # 短信验证码错误
 
 
 # 完善资料
@@ -71,9 +70,9 @@ def editPassword(redis_connect, userType, tel, password, smsCode):
         return '200104'  # 验证码错误
     # 3.以上都没有问题   则修改密码
     if userType == 'patient':
-        r = redis_connect.hset('hash_userInfo', 'hash_patient_%s' % tel, password)
+        redis_connect.hset('hash_userInfo', 'hash_patient_%s' % tel, password)
     elif userType == 'doctor':
-        r = redis_connect.hset('hash_userInfo', 'hash_doctor_%s' % tel, password)
+        redis_connect.hset('hash_userInfo', 'hash_doctor_%s' % tel, password)
     return '10010'  # 修改密码成功
 
 

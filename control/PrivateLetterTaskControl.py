@@ -121,14 +121,14 @@ class PrivateLetterControl(object):
     def queryDoctorPrivateLetterList(self,doctor_tel):
         privateLetterListjson = self.redis_connect.hget('hash_doctor_%s'%doctor_tel,'private_letter_list')
         print privateLetterListjson
+        privateLetterEntityList = []
         if privateLetterListjson == None or privateLetterListjson =='None':
             privateLetterList=[]
         else:
             privateLetterList = json.loads(privateLetterListjson)
-            privateLetterEntityList = []
-            for i in  privateLetterList:
-                entity = self.redis_connect.hgetall(i)
-                privateLetterEntityList.append(entity)
+        for i in  privateLetterList:
+            entity = self.redis_connect.hgetall(i)
+            privateLetterEntityList.append(entity)
         return json.dumps(privateLetterEntityList)
 
     # 病人请求自己私信列表

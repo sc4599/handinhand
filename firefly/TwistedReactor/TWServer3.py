@@ -5,6 +5,7 @@ from twisted.internet.protocol import Factory
 from twisted.internet import reactor
 import time
 import json
+import re
 
 class TcpServerHandle(LineReceiver):
     def __init__(self, factory):
@@ -30,7 +31,7 @@ class TcpServerHandle(LineReceiver):
                 del self.factory.doctorsKV[tel]
             else:
                 print '...%s is not in doctorKV at :'%tel,time.ctime(time.time())
-            print 'doctor %s client removed' % tel
+            print '...doctor %s client removed' % tel
         elif self in self.factory.patients.keys():
             tel = self.factory.patients[self]
             del self.factory.patients[self]
@@ -40,19 +41,28 @@ class TcpServerHandle(LineReceiver):
     # 接受消息时候出发此方法。
     # # @line 或得到的消息详细内容
     def dataReceived(self, line):
-        print '...current line is :%s' % line
+        # if line != ' ':
+        #     print '...current line is :%s' % line
         # 连接服务器收到  doctor:::15012822291:::msg  这样的格式的信息
         #                  type:::tel:::other
         if line.startswith('doctor:::'):
             tel = line.split(':::')[1]
-            print '...I am doctor add to doctors tel = %s' % tel
-            self.factory.addToDoctors(tel, self)
-            # for c in self.factory.clients:
-            #     c.sendLine(line)
+            p2 = re.compile('^0\d{2,3}\d{7,8}$|^1[3587]\d{9}$|^147\d{8}')
+            if tel not in self.factory.patientsKV:
+                if p2.match(tel):
+                    print '...I am doctor add to doctors tel = %s' % tel
+                    self.factory.addToDoctors(tel, self)
+                else:
+                    print '...pleace input correct phone number'
         elif line.startswith('patient:::'):
             tel = line.split(':::')[1]
-            print '...I am patient add to patients tel = %s' % tel
-            self.factory.addToPatient(tel, self)
+            p2 = re.compile('^0\d{2,3}\d{7,8}$|^1[3587]\d{9}$|^147\d{8}')
+            if tel not in self.factory.patientsKV:
+                if p2.match(tel):
+                    print '...I am patient add to patients tel = %s' % tel
+                    self.factory.addToPatient(tel, self)
+                else:
+                    print '...pleace input correct phone number'
         self.sendLine('succeed')
 
 
@@ -74,7 +84,7 @@ class TcpServerFactory(Factory):
     def addToDoctors(self, tel, instance):
         self.doctorsKV[tel] = instance
         self.doctors[instance] = tel
-        print self.doctors
+        print '...',self.doctors
         print '...current doctor counts = %d' % len(self.doctors)
 
     # 添加patient

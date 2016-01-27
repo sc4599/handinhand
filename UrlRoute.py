@@ -127,14 +127,14 @@ class UpdataDoctorHandler(tornado.web.RequestHandler):
         doctor['name']=self.get_argument('name')
         doctor['gender']=self.get_argument('gender')
         doctor['ndividual_resume']=self.get_argument('ndividual_resume',default=None)
-        doctor['comment_count']=self.get_argument('comment_count',default=0)
+        doctor['comment_count']=self.get_argument('comment_count',default=None)
         doctor['grade']=self.get_argument('grade',default=4)
         doctor['adept']=self.get_argument('adept',default=None)
-        doctor['treatment_count']=self.get_argument('treatment_count',default=0)
+        doctor['treatment_count']=self.get_argument('treatment_count',default=None)
         doctor['qualification_pic']=self.get_argument('qualification_pic',default=None)
         doctor['identification_pic']=self.get_argument('identification_pic',default=None)
         doctor['hospital']=self.get_argument('hospital',default=None)
-        doctor['current_task_count']=self.get_argument('current_task_count',default=0)
+        doctor['current_task_count']=self.get_argument('current_task_count',default=None)
         r = LoginControl.updataDoctorInfo(redis_connect, doctor)
         self.write(r)
 
@@ -164,7 +164,7 @@ class DoctorInfoHandler(tornado.web.RequestHandler):
 
 
 # 检查病人当前是否有任务发布
-class QueryTaskHandler(tornado.web.RequestHandler):
+class QueryCurrentTaskHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
         tel = args[0]
         r = TaskControl.queryTask(redis_connect, patient_tel=tel)
@@ -424,9 +424,19 @@ class qiniuHandler(tornado.web.RequestHandler):
         print 'callback etag = %s' % etag
         print 'callback fname = %s' % fname
 
+# 获取当前在线医生
 class GetDoctorIfonlineHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
         self.write(userControl.getDoctorsOnlineEntity())
+
+# 根据 半径获取半径内 所有医生
+class GetDoctorByRadiusHandler(tornado.web.RequestHandler):
+    def post(self, *args, **kwargs):
+        lat_a = float(self.get_argument('lat_a'))
+        lng_a = float(self.get_argument('lng_a'))
+        radius = int(self.get_argument('radius'))
+        r = userControl.getDoctorBydistance(radius,lat_a,lng_a)
+        self.write(r)
 
 class OtherHandler(tornado.web.RequestHandler):
     print 'this is  OtherHandler'
@@ -463,7 +473,7 @@ def startTornadoServer():
                                               (r'/addTask/', addTaskHandler),
                                               (r'/deleteTask/id=(.*)', DeleteTaskHandler),
                                               (r'/editTask/', EditTaskHandler),
-                                              (r'/queryTask/tel=(.*)', QueryTaskHandler),
+                                              (r'/queryTask/tel=(.*)', QueryCurrentTaskHandler),
                                               (r'/queryTaskDoctorsById/id=(.*)', QueryTaskDoctorsByIdHandler),
                                               (r'/queryTaskInfoById/id=(.*)', QueryTaskInfoById),
                                               (r'/acceptTask/', acceptTaskHandler),
@@ -481,6 +491,7 @@ def startTornadoServer():
                                               (r'/queryDoctorPrivateLetterList/', QueryDoctorPrivateLetterListHandler),
                                               (r'/qiniuUp/', qiniuHandler),
                                               (r'/getDoctorIfonline/', GetDoctorIfonlineHandler),
+                                              (r'/getDoctorByRadius/', GetDoctorByRadiusHandler),
                                               (r'/.*', OtherHandler)
                                               ],
                                     template_path=os.path.join(os.path.dirname(__file__), 'templates'),
@@ -495,7 +506,7 @@ def startTornadoServer():
 if __name__ == '__main__':
     # 启动tcp服务器addToPatient
     from firefly.TwistedReactor import TWServer3
-    # 使用线程启动 TornadoServer
+    # 使用线程启动 To rnadoServer
     import threading
 
     tornadoServerThread = threading.Thread(target=startTornadoServer)
