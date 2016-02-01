@@ -22,4 +22,5 @@ rc = dao.RedisDAO.connect('192.168.1.18')
 # print type(r)
 
 # rc.hset('testdict','a','1')
-print rc.hget('testdict','b')
+
+print rc.hget('testdict','aa')

@@ -85,14 +85,14 @@ class TcpServerFactory(Factory):
         self.doctorsKV[tel] = instance
         self.doctors[instance] = tel
         print '...',self.doctors
-        print '...current doctor counts = %d' % len(self.doctors)
+        print '...current doctor counts = %d' % len(self.doctorsKV)
 
     # 添加patient
     def addToPatient(self, tel, instance):
         self.patientsKV[tel] = instance
         self.patients[instance] = tel
         print self.patientsKV
-        print '...current patient counts = %d' % len(self.patients)
+        print '...current patient counts = %d' % len(self.patientsKV)
 
     # 向所有医生发消息
     def sendToDoctors(self, data):
@@ -135,8 +135,8 @@ class Simple(resource.Resource):
     def render_GET(self, request):
         print '...this is render_GET !!!!'
         # print (request.__dict__)
-        doctors = len(tfactory.doctors)
-        patients = len(tfactory.patients)
+        doctors = len(tfactory.doctorsKV)
+        patients = len(tfactory.patientsKV)
         lpatients = ''
         ldoctors = ''
         for i in tfactory.doctorsKV.keys():

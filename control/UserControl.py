@@ -21,7 +21,7 @@ class UserOnLineControl(object):
 
     def getDoctorsOnlineEntity(self):
         doctors = self.getDoctorsOnline()
-        print type(doctors)
+        print 'this is getDoctorsOnlineEntity',type(doctors)
 
         doctorsEntity = []
         print doctors

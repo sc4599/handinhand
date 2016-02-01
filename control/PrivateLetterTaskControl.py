@@ -37,6 +37,8 @@ class PrivateLetterControl(object):
                 return '200602' # 您已经给当前医生发过私信，请等待处理后重新发送
         privateLetterList.append(detailTask.get('id'))
         self.redis_connect.hset('hash_doctor_%s'%doctor_tel,'private_letter_list',json.dumps(privateLetterList))
+        #2.2 在私信实体中添加 发送给谁字段 （sendto）
+        self.redis_connect.hset(detailTask.get('id'),'sendTo','hash_doctor_%s'%doctor_tel)
 
         # 3.通知医生有信给你
         r =pushTask(what='sendPrivateLetter',doctor_tel=doctor_tel,channelTaskID=detailTask.get('id'))
@@ -49,7 +51,7 @@ class PrivateLetterControl(object):
         # 1.医生电话号码添加到 私信哈希表中
         self.redis_connect.hset(detailTask.get('id'),'doctor_tel',doctor_tel)
         # 2.通知病人医生接受了你的私信，显示医生电话号码
-        r = pushTask('acceptPrivateLetter',patient_tel=detailTask.get('patient_tel'),channelTaskID=detailTask.get('id'))
+        r = pushTask('acceptPrivateLetter',patient_tel=detailTask.get('patient_tel'),doctor_tel=doctor_tel, channelTaskID=detailTask.get('id'))
         if r != '10001':
             return r
 
