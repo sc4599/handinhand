@@ -23,4 +23,8 @@ rc = dao.RedisDAO.connect('192.168.1.18')
 
 # rc.hset('testdict','a','1')
 
-print rc.hget('testdict','aa')
+print json.loads('[]')
+
+l = ['a','b']
+print l.remove('a')
+print l

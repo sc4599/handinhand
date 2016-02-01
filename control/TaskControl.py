@@ -309,7 +309,7 @@ def deleteAcceptedDoctor(redis_connect, detailTask, doctor_tel):
     # 3.当前医生的任务列表删除该任务
     res = redis_connect.hget('hash_doctor_%s' % doctor_tel, 'current_task_count')
     if res ==None or res == 'None':
-        res = []
+        res = '[]'
     task_list = json.loads(res)
     if detailTask.get('id') in task_list:
         task_list.remove(detailTask.get('id'))
@@ -365,6 +365,8 @@ def confirmTask(redis_connect, detailTask):
     pip.expire(detailTask.get('id'), 1)
     # 7.同时删除医生当前任务列表中的该条任务！（current_task_count）
     rtasks = redis_connect.hget('hash_doctor_%s' % detailTask.get('doctor_tel'), 'current_task_count')
+    if rtasks == None or rtasks == 'None':
+        rtasks = []
     tasklist = json.loads(rtasks)
     if detailTask.get('id') in tasklist:
         tasklist.remove(detailTask.get('id'))
