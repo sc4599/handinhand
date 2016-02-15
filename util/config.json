@@ -2,14 +2,14 @@
     "redis": {
         "ip": "192.168.1.18",
         "port": "6379",
-        "auth": "songchao"
+        "auth": "password"
     },
     "mysql": {
         "ip": "192.168.1.18",
         "port": "3306",
-        "username": "sc4599",
-        "password": "songchao",
-        "database": "handinhand"
+        "username": "username",
+        "password": "password",
+        "database": "database"
     },
     "socket": {
         "ip": "192.168.1.124",
